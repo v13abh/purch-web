@@ -25,19 +25,21 @@ autofs:
             host: ''
             path: ''
 
+cert_new_path: ""
+cert_file_path: ""
+
 ftp_user_purch: ''
 ftp_pass_purch: ''
 
-
-cert_new_path: ""
-cert_file_path: ""
+qualtrics_api_token: ''
+qualtrics_survey_id: ''
 
 solicitation_new_path: ""
 solicitation_web_path: ""
 solicitation_doc_path: ""
 solicitation_html_path: ""
 
-email: chris.cone@ou.edu
+email: ''
 users:
   - name: ''
     groups: 'wheel'
