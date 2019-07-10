@@ -16,55 +16,49 @@
       set_fact:
         date: "{{ ansible_date_time.date }}"
 
-#    - name: Create Qualtrics Response Export
-#      shell: |
-#        curl -X POST -H 'X-API-TOKEN: DFNK0jQQtnkxd0FjDj3Mu30Bdxm5LatYoXWUrCJ9' -H 'Content-Type: application/json' -d '{ 
-#        "surveyId": "SV_79e44l3c7SLuo1T",
-#        "format": "json",
-#        "startDate": "{{ date }}T{{ start_time }}:00-05:00",
-#        "endDate": "{{ date }}T{{ end_time }}:00-05:00",
-#        "useLabels": true
-#        }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
-#      register: qualtrics_export
-#
-#    - name: Register Qualtrics Request ID
-#      set_fact:
-#        qualtrics_request_id: '{{ (qualtrics_export.stdout | from_json).result.id }}'
-#
-#    - name: Check Status of Qualtrics Response Export
-#      shell: |
-#        curl -H 'X-API-TOKEN: DFNK0jQQtnkxd0FjDj3Mu30Bdxm5LatYoXWUrCJ9' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}'
-#      register: qualtrics_progress
-#
-#    - name: Download Qualtrics Response Export
-#      shell: |
-#        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: DFNK0jQQtnkxd0FjDj3Mu30Bdxm5LatYoXWUrCJ9" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
-#      register: qualtrics_progress
-#
-#    - name: Unzip Response File
-#      shell: |
-#        unzip response.zip
+    - name: Create Qualtrics Response Export
+      shell: |
+        curl -X POST -H 'X-API-TOKEN: DFNK0jQQtnkxd0FjDj3Mu30Bdxm5LatYoXWUrCJ9' -H 'Content-Type: application/json' -d '{ 
+        "surveyId": "SV_79e44l3c7SLuo1T",
+        "format": "json",
+        "startDate": "{{ date }}T{{ start_time }}:00-05:00",
+        "endDate": "{{ date }}T{{ end_time }}:00-05:00",
+        "useLabels": true
+        }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
+      register: qualtrics_export
 
-#    - name: Remove Brackets from JSON
-#      replace:
-#        path: '/home/ccone1/purch-prod/Purchasing Solicitations.json'
-#        regexp: '\[|\]'
-#        replace: ''
+    - name: Register Qualtrics Request ID
+      set_fact:
+        qualtrics_request_id: '{{ (qualtrics_export.stdout | from_json).result.id }}'
+
+    - name: Check Status of Qualtrics Response Export
+      shell: |
+        curl -H 'X-API-TOKEN: DFNK0jQQtnkxd0FjDj3Mu30Bdxm5LatYoXWUrCJ9' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}'
+      register: qualtrics_progress
+
+    - name: Download Qualtrics Response Export
+      shell: |
+        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: DFNK0jQQtnkxd0FjDj3Mu30Bdxm5LatYoXWUrCJ9" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
+      register: qualtrics_progress
+
+    - name: Unzip Response File
+      shell: |
+        unzip response.zip
 
     - name: Import JSON
       set_fact:      
-        qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}" #'Purchasing Solicitations.json'
+        qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
       ignore_errors: True
 
-#    - name: Delete Old Response Zip
-#      file:
-#        path: "/home/ccone1/purch-prod/response.zip"
-#        state: absent
+    - name: Delete Old Response Zip
+      file:
+        path: "response.zip"
+        state: absent
    
-#    - name: Delete Old Response File
-#      file:
-#        path: "/home/ccone1/purch-prod/Purchasing Solicitations.json"
-#        state: absent
+    - name: Delete Old Response File
+      file:
+        path: "Purchasing Solicitations.json"
+        state: absent
 
     - name: Debug Qualtrics Vars
       debug:
