@@ -1,0 +1,103 @@
+---
+
+- hosts: all
+  become: true
+
+  vars_files:
+  - my_vars.yml
+
+  tasks:
+    - name: Check if there are Solicitations to Post
+      raw: "ls '{{ solicitation_new_path }}'"
+      register: sol_files
+
+    - name: Include Solicitation Info as Variables
+      include_vars:
+        dir: '{{ solicitation_new_path }}'
+        ignore_unknown_extensions: True
+        ignore_files: [solicitations.txt]
+        extensions:
+          - txt
+      when: sol_files.stdout != ""
+
+    - name: Insert Solicitation HTML in Purchasing Website
+      blockinfile:
+        path: '{{ solicitation_html_path }}'
+        marker: "<!-- {mark} {{ solicitation.close_date }} {{ solicitation.close_time }} {{ solicitation.number }}-->"
+        content: |
+          <tr id="data">
+            <td id="data"><span id="title"><b><u>{{ solicitation.number }}</u></b><br><br>{{ solicitation.title }}<span><br><br></td>
+            <td id="data">{{ solicitation.campus }}</td>
+            <td id="data">{{ solicitation.buyer }}<br> email: <a href="mailto:{{ solicitation.buyer_email }}">{{ solicitation.buyer_email }}</a></td>
+            <td id="data">{{ solicitation.open_date }}</td>
+            <td id="data">{{ solicitation.close_date }} at {{ solicitation.close_time }} CT</td>
+            <td id="data">[ <a href="documents/{{ solicitation.number }}/{{ solicitation.number }} {{ solicitation.title }}.pdf" target="_blank">{{ solicitation.number }}</a> ]<br><br></td>
+            <td id="attach">
+            </td>
+          </tr>
+        state: present
+        backup: yes
+        insertbefore: "end solicitations"
+      when: sol_files.stdout != ""
+
+    - name: Insert Attachments
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ solicitation.number }}/{{ item }}" target="_blank">{{ item }}</a><br><br>'
+        backup: yes
+      with_items: '{{ solicitation.att }}'
+      when: solicitation.attachment
+      ignore_errors: True
+
+    - name: Insert Addendums
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ solicitation.number }}/{{ item }}" target="_blank">{{ item }}</a><br><br>'
+        backup: yes
+      with_items: '{{ solicitation.add }}'
+      when: solicitation.addendum
+      ignore_errors: True
+
+    - name: Register Date
+      set_fact:
+        date: "{{ lookup('pipe','date +%m-%d-%y') }}"
+
+    - name: Register Hour
+      set_fact:
+        hour: "{{ ansible_date_time.hour }}"
+
+    - name: Check for Expired Solicitations
+      raw: grep "{{ date }} {{ hour }}" "{{ solicitation_html_path }}"
+      register: check
+      ignore_errors: True
+
+    - name: Fact
+      set_fact:
+        expire_list: "{{ check.stdout_lines | list }}"
+      ignore_errors: True
+
+    - name: Remove Expired Solicitations
+      replace:
+        path: '{{ solicitation_html_path }}'
+        regexp: "(^{{ expire_list[0] }})([^$]*?)({{ expire_list[1] }})"
+        replace: ''
+        backup: yes
+      ignore_errors: True
+
+    - name: Copy Files to FTP
+      raw: ncftpput -R -u '{{ ftp_user_purch }}' -p '{{ ftp_pass_purch }}' ouwww.ou.edu /solicitations/documents /mnt/purchasing/solicitations/"{{ solicitation.number }}"/
+      ignore_errors: True
+
+    - name: Backup Files to Purchasing File Share
+      command: mv /mnt/purchasing/solicitations/"{{ solicitation.number }}" /mnt/purchasing/Information\ Technology/Website/Purchasing/solicitations/documents/"{{ solicitation.number }}"
+      ignore_errors: True
+
+    - name: Copy Index to FTP
+      raw: ncftpput -u '{{ ftp_user_purch }}' -p '{{ ftp_pass_purch }}' ouwww.ou.edu /solicitations /mnt/purchasing/Information\ Technology/Website/Purchasing/solicitations/solicitations.html
+      ignore_errors: True
+
+
+
+

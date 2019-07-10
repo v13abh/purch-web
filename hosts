@@ -1,0 +1,10 @@
+ansible.vagrant.local ansible_connection=local
+localhost ansible_connection=local
+
+[ignore]
+ansible.vagrant.local
+
+
+[purch]
+localhost
+
