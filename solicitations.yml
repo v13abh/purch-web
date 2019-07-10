@@ -7,58 +7,123 @@
   - my_vars.yml
 
   tasks:
-    - name: Check if there are Solicitations to Post
-      raw: "ls '{{ solicitation_new_path }}'"
-      register: sol_files
 
-    - name: Include Solicitation Info as Variables
-      include_vars:
-        dir: '{{ solicitation_new_path }}'
-        ignore_unknown_extensions: True
-        ignore_files: [solicitations.txt]
-        extensions:
-          - txt
-      when: sol_files.stdout != ""
+    - name: Delete Old Response Zip
+      file:
+        path: "response.zip"
+        state: absent
+      ignore_errors: True
+   
+    - name: Delete Old Response File
+      file:
+        path: "Purchasing Solicitations.json"
+        state: absent
+      ignore_errors: True
 
-    - name: Insert Solicitation HTML in Purchasing Website
+    - name: Register Current Hour as End Time
+      set_fact:
+        end_time: "{{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
+    
+    - name: Munge Epoch Time Minus 15 Minutes for Start Time
+      set_fact:
+        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 15 )  ) }}"
+
+    - name: Register Current Date
+      set_fact:
+        date: "{{ ansible_date_time.date }}"
+
+    - name: Create Qualtrics Response Export
+      shell: |
+        curl -X POST -H 'X-API-TOKEN: {{ qualtrics_api_token }}' -H 'Content-Type: application/json' -d '{ 
+        "surveyId": "{{ qualtrics_survey_id }}",
+        "format": "json",
+        "startDate": "{{ date }}T{{ start_time }}:00-05:00",
+        "endDate": "{{ date }}T{{ end_time }}:00-05:00",
+        "useLabels": true
+        }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
+      register: qualtrics_export
+
+    - name: Register Qualtrics Request ID
+      set_fact:
+        qualtrics_request_id: '{{ (qualtrics_export.stdout | from_json).result.id }}'
+
+    - name: Check Status of Qualtrics Response Export
+      shell: |
+        curl -H 'X-API-TOKEN: {{ qualtrics_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}'
+      register: qualtrics_progress
+
+    - name: Download Qualtrics Response Export
+      shell: |
+        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ qualtrics_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
+      register: qualtrics_progress
+
+    - name: Unzip Response File
+      shell: |
+        unzip response.zip
+
+    - name: Import JSON
+      set_fact:      
+        qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
+      ignore_errors: True
+
+    - name: Debug Qualtrics Vars
+      debug:
+        msg: "The Sol Number is '{{ item.Q1 }}' and the Title is '{{ item.Q2 }}'"
+      with_items: '{{ qualtrics_vars.responses }}'
+
+#    - name: Check if there are Solicitations to Post
+#      raw: "ls '{{ solicitation_new_path }}'"
+#      register: sol_files
+
+#    - name: Include Solicitation Info as Variables
+#      include_vars:
+#        dir: '{{ solicitation_new_path }}'
+#        ignore_unknown_extensions: True
+#        ignore_files: [solicitations.txt]
+#        extensions:
+#          - txt
+#      when: sol_files.stdout != ""
+
+    - name: Modify Solicitation HTML
       blockinfile:
         path: '{{ solicitation_html_path }}'
-        marker: "<!-- {mark} {{ solicitation.close_date }} {{ solicitation.close_time }} {{ solicitation.number }}-->"
+        marker: "<!-- {mark} {{ item.Q7 }} {{ item.Q23 }} {{ item.Q1 }}-->"
         content: |
           <tr id="data">
-            <td id="data"><span id="title"><b><u>{{ solicitation.number }}</u></b><br><br>{{ solicitation.title }}<span><br><br></td>
-            <td id="data">{{ solicitation.campus }}</td>
-            <td id="data">{{ solicitation.buyer }}<br> email: <a href="mailto:{{ solicitation.buyer_email }}">{{ solicitation.buyer_email }}</a></td>
-            <td id="data">{{ solicitation.open_date }}</td>
-            <td id="data">{{ solicitation.close_date }} at {{ solicitation.close_time }} CT</td>
-            <td id="data">[ <a href="documents/{{ solicitation.number }}/{{ solicitation.number }} {{ solicitation.title }}.pdf" target="_blank">{{ solicitation.number }}</a> ]<br><br></td>
+            <td id="data"><span id="title"><b><u>{{ item.Q1 }}</u></b><br><br>{{ item.Q2 }}<span><br><br></td>
+            <td id="data">{{ item.Q3 }}</td>
+            <td id="data">{{ item.Q4 }}<br> email: <a href="mailto:{{ item.Q5 }}">{{ item.Q5 }}</a></td>
+            <td id="data">{{ item.Q6 }}</td>
+            <td id="data">{{ item.Q7 }} at {{ item.Q23 }} CT</td>
+            <td id="data">[ <a href="documents/{{ item.Q1 }}/{{ item.Q1 }} {{ item.Q2 }}.pdf" target="_blank">{{ item.Q1 }}</a> ]<br><br></td>
             <td id="attach">
             </td>
           </tr>
         state: present
         backup: yes
         insertbefore: "end solicitations"
+      with_items: '{{ qualtrics_vars.responses }}'
       when: sol_files.stdout != ""
 
-    - name: Insert Attachments
-      lineinfile:
-        path: '{{ solicitation_html_path }}'
-        insertafter: '<td id="attach">'
-        line: '<a href="documents/{{ solicitation.number }}/{{ item }}" target="_blank">{{ item }}</a><br><br>'
-        backup: yes
-      with_items: '{{ solicitation.att }}'
-      when: solicitation.attachment
-      ignore_errors: True
+#    - name: Insert Attachments
+#      lineinfile:
+#        path: '{{ solicitation_html_path }}'
+#        insertafter: '<td id="attach">'
+#        line: '<a href="documents/{{  }}/{{ item }}" target="_blank">{{ item }}</a><br><br>'
+#        backup: yes
+#      with_items: '{{ qualtrics_vars.responses }}'
+#      when: solicitation.attachment
+#      ignore_errors: True
 
-    - name: Insert Addendums
-      lineinfile:
-        path: '{{ solicitation_html_path }}'
-        insertafter: '<td id="attach">'
-        line: '<a href="documents/{{ solicitation.number }}/{{ item }}" target="_blank">{{ item }}</a><br><br>'
-        backup: yes
-      with_items: '{{ solicitation.add }}'
-      when: solicitation.addendum
-      ignore_errors: True
+#    - name: Insert Addendums
+#      lineinfile:
+#        path: '{{ solicitation_html_path }}'
+#        insertafter: '<td id="attach">'
+#        line: '<a href="documents/{{ solicitation.number }}/{{ item }}" target="_blank">{{ item }}</a><br><br>'
+#        backup: yes
+#      with_items: '{{ solicitation.add }}'
+#      when: solicitation.addendum
+#      ignore_errors: True
 
     - name: Register Date
       set_fact:
@@ -78,25 +143,25 @@
         expire_list: "{{ check.stdout_lines | list }}"
       ignore_errors: True
 
-    - name: Remove Expired Solicitations
-      replace:
-        path: '{{ solicitation_html_path }}'
-        regexp: "(^{{ expire_list[0] }})([^$]*?)({{ expire_list[1] }})"
-        replace: ''
-        backup: yes
-      ignore_errors: True
+#    - name: Remove Expired Solicitations
+#      replace:
+#        path: '{{ solicitation_html_path }}'
+#        regexp: "(^{{ expire_list[0] }})([^$]*?)({{ expire_list[1] }})"
+#        replace: ''
+#        backup: yes
+#      ignore_errors: True
 
-    - name: Copy Files to FTP
-      raw: ncftpput -R -u '{{ ftp_user_purch }}' -p '{{ ftp_pass_purch }}' ouwww.ou.edu /solicitations/documents /mnt/purchasing/solicitations/"{{ solicitation.number }}"/
-      ignore_errors: True
+#    - name: Copy Files to FTP
+#      raw: ncftpput -R -u '{{ ftp_user_purch }}' -p '{{ ftp_pass_purch }}' ouwww.ou.edu /solicitations/documents /mnt/purchasing/solicitations/"{{ solicitation.number }}"/
+#      ignore_errors: True
 
-    - name: Backup Files to Purchasing File Share
-      command: mv /mnt/purchasing/solicitations/"{{ solicitation.number }}" /mnt/purchasing/Information\ Technology/Website/Purchasing/solicitations/documents/"{{ solicitation.number }}"
-      ignore_errors: True
+#    - name: Backup Files to Purchasing File Share
+#      command: mv /mnt/purchasing/solicitations/"{{ solicitation.number }}" /mnt/purchasing/Information\ Technology/Website/Purchasing/solicitations/documents/"{{ solicitation.number }}"
+#      ignore_errors: True
 
-    - name: Copy Index to FTP
-      raw: ncftpput -u '{{ ftp_user_purch }}' -p '{{ ftp_pass_purch }}' ouwww.ou.edu /solicitations /mnt/purchasing/Information\ Technology/Website/Purchasing/solicitations/solicitations.html
-      ignore_errors: True
+#    - name: Copy Index to FTP
+#      raw: ncftpput -u '{{ ftp_user_purch }}' -p '{{ ftp_pass_purch }}' ouwww.ou.edu /solicitations /mnt/purchasing/Information\ Technology/Website/Purchasing/solicitations/solicitations.html
+#      ignore_errors: True
 
 
 
