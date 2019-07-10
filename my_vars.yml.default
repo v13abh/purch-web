@@ -1,0 +1,45 @@
+#vi: set ft=yaml
+---
+centos7_iptables:
+  - rule_name: Inbound SSH Allow All
+    source_ip: 0.0.0.0/0
+    tcp_port: 22
+
+autofs:
+  - mount_point: ''
+    mount_name: ''
+    maps:
+      - map_key: ''
+        map_options:
+          - name: 'fstype'
+            options: ['cifs','rw','noperm','sec=ntlm','credentials=/root/.smbcredentials']
+          - name: 'uid'
+            options: ['0']
+          - name: 'gid'
+            options: ['0']
+          - name: 'dir_mode'
+            options: ['0775']
+          - name: 'file_mode'
+            options: ['0664']
+        map_location:
+            host: ''
+            path: ''
+
+ftp_user_purch: ''
+ftp_pass_purch: ''
+
+
+cert_new_path: ""
+cert_file_path: ""
+
+solicitation_new_path: ""
+solicitation_web_path: ""
+solicitation_doc_path: ""
+solicitation_html_path: ""
+
+email: chris.cone@ou.edu
+users:
+  - name: ''
+    groups: 'wheel'
+    keyname: ''
+    pubkey: ''
