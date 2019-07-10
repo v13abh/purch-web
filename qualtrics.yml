@@ -3,6 +3,9 @@
 - hosts: all
   become: true
 
+  vars_files:
+  - my_vars.yml
+
   tasks:
     - name: Register Current Hour as End Time
       set_fact:
@@ -18,8 +21,8 @@
 
     - name: Create Qualtrics Response Export
       shell: |
-        curl -X POST -H 'X-API-TOKEN: DFNK0jQQtnkxd0FjDj3Mu30Bdxm5LatYoXWUrCJ9' -H 'Content-Type: application/json' -d '{ 
-        "surveyId": "SV_79e44l3c7SLuo1T",
+        curl -X POST -H 'X-API-TOKEN: {{ qualtrics_api_token }}' -H 'Content-Type: application/json' -d '{ 
+        "surveyId": "{{ qualtrics_survey_id }}",
         "format": "json",
         "startDate": "{{ date }}T{{ start_time }}:00-05:00",
         "endDate": "{{ date }}T{{ end_time }}:00-05:00",
@@ -33,12 +36,12 @@
 
     - name: Check Status of Qualtrics Response Export
       shell: |
-        curl -H 'X-API-TOKEN: DFNK0jQQtnkxd0FjDj3Mu30Bdxm5LatYoXWUrCJ9' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}'
+        curl -H 'X-API-TOKEN: {{ qualtrics_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}'
       register: qualtrics_progress
 
     - name: Download Qualtrics Response Export
       shell: |
-        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: DFNK0jQQtnkxd0FjDj3Mu30Bdxm5LatYoXWUrCJ9" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
+        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ qualtrics_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
       register: qualtrics_progress
 
     - name: Unzip Response File
