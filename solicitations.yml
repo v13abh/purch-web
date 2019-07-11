@@ -8,17 +8,17 @@
 
   tasks:
 
-    - name: Delete Old Response Zip
-      file:
-        path: "response.zip"
-        state: absent
-      ignore_errors: True
+#    - name: Delete Old Response Zip
+#      file:
+#        path: "response.zip"
+#        state: absent
+#      ignore_errors: True
    
-    - name: Delete Old Response File
-      file:
-        path: "Purchasing Solicitations.json"
-        state: absent
-      ignore_errors: True
+#    - name: Delete Old Response File
+#      file:
+#        path: "Purchasing Solicitations.json"
+#        state: absent
+#      ignore_errors: True
 
     - name: Register Current Hour as End Time
       set_fact:
@@ -32,44 +32,44 @@
       set_fact:
         date: "{{ ansible_date_time.date }}"
 
-    - name: Create Qualtrics Response Export
-      shell: |
-        curl -X POST -H 'X-API-TOKEN: {{ qualtrics_api_token }}' -H 'Content-Type: application/json' -d '{ 
-        "surveyId": "{{ qualtrics_survey_id }}",
-        "format": "json",
-        "startDate": "{{ date }}T{{ start_time }}:00-05:00",
-        "endDate": "{{ date }}T{{ end_time }}:00-05:00",
-        "useLabels": true
-        }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
-      register: qualtrics_export
+#    - name: Create Qualtrics Response Export
+#      shell: |
+#        curl -X POST -H 'X-API-TOKEN: {{ qualtrics_api_token }}' -H 'Content-Type: application/json' -d '{ 
+#        "surveyId": "{{ qualtrics_survey_id }}",
+#        "format": "json",
+#        "startDate": "{{ date }}T{{ start_time }}:00-05:00",
+#        "endDate": "{{ date }}T{{ end_time }}:00-05:00",
+#        "useLabels": true
+#        }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
+#      register: qualtrics_export
 
-    - name: Register Qualtrics Request ID
-      set_fact:
-        qualtrics_request_id: '{{ (qualtrics_export.stdout | from_json).result.id }}'
+ #   - name: Register Qualtrics Request ID
+ #     set_fact:
+ #       qualtrics_request_id: '{{ (qualtrics_export.stdout | from_json).result.id }}'
 
-    - name: Check Status of Qualtrics Response Export
-      shell: |
-        curl -H 'X-API-TOKEN: {{ qualtrics_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}'
-      register: qualtrics_progress
+#    - name: Check Status of Qualtrics Response Export
+#      shell: |
+#        curl -H 'X-API-TOKEN: {{ qualtrics_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}'
+#      register: qualtrics_progress
 
-    - name: Download Qualtrics Response Export
-      shell: |
-        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ qualtrics_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
-      register: qualtrics_progress
+#    - name: Download Qualtrics Response Export
+#      shell: |
+#        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ qualtrics_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
+#      register: qualtrics_progress
 
-    - name: Unzip Response File
-      shell: |
-        unzip response.zip
+#    - name: Unzip Response File
+#      shell: |
+#        unzip response.zip
 
-    - name: Import JSON
+    - name: Import JSON as Variables
       set_fact:      
         qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
       ignore_errors: True
 
-    - name: Debug Qualtrics Vars
-      debug:
-        msg: "The Sol Number is '{{ item.Q1 }}' and the Title is '{{ item.Q2 }}'"
-      with_items: '{{ qualtrics_vars.responses }}'
+#    - name: Debug Qualtrics Vars
+#      debug:
+#        msg: "The Sol Number is '{{ item.Q1 }}' and the Title is '{{ item.Q2 }}'"
+#      with_items: '{{ qualtrics_vars.responses }}'
 
 #    - name: Check if there are Solicitations to Post
 #      raw: "ls '{{ solicitation_new_path }}'"
@@ -87,15 +87,15 @@
     - name: Modify Solicitation HTML
       blockinfile:
         path: '{{ solicitation_html_path }}'
-        marker: "<!-- {mark} {{ item.Q7 }} {{ item.Q23 }} {{ item.Q1 }}-->"
+        marker: "<!-- {mark} {{ item.Q8 }} {{ item.Q9 }} {{ item.Q2 }}-->"
         content: |
           <tr id="data">
-            <td id="data"><span id="title"><b><u>{{ item.Q1 }}</u></b><br><br>{{ item.Q2 }}<span><br><br></td>
-            <td id="data">{{ item.Q3 }}</td>
-            <td id="data">{{ item.Q4 }}<br> email: <a href="mailto:{{ item.Q5 }}">{{ item.Q5 }}</a></td>
-            <td id="data">{{ item.Q6 }}</td>
-            <td id="data">{{ item.Q7 }} at {{ item.Q23 }} CT</td>
-            <td id="data">[ <a href="documents/{{ item.Q1 }}/{{ item.Q1 }} {{ item.Q2 }}.pdf" target="_blank">{{ item.Q1 }}</a> ]<br><br></td>
+            <td id="data"><span id="title"><b><u>{{ item.Q2 }}</u></b><br><br>{{ item.Q3 }}<span><br><br></td>
+            <td id="data">{{ item.Q4 }}</td>
+            <td id="data">{{ item.Q5 }}<br> email: <a href="mailto:{{ item.Q6 }}">{{ item.Q6 }}</a></td>
+            <td id="data">{{ item.Q7 }}</td>
+            <td id="data">{{ item.Q8 }} at {{ item.Q9 }} CT</td>
+            <td id="data">[ <a href="documents/{{ item.Q2 }}/{{ item.Q2 }} {{ item.Q3 }}.pdf" target="_blank">{{ item.Q2 }}</a> ]<br><br></td>
             <td id="attach">
             </td>
           </tr>
@@ -103,16 +103,39 @@
         backup: yes
         insertbefore: "end solicitations"
       with_items: '{{ qualtrics_vars.responses }}'
-      when: sol_files.stdout != ""
+      when: qualtrics_vars.responses != ""
+
+    - name: Create Solicitation Directories
+      file:
+        path: '{{ solicitation_doc_path }}/{{ item.Q2 }}'
+        state: directory
+        mode: '0755'
+      with_items: '{{ qualtrics_vars.responses }}'
+
+    - name: Download Solicitation Files
+      get_url:
+        url: '{{ item.Q10_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q10_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+
+    - name: Debug Qualtrics Vars
+      set_fact:
+        attachments: '{{ item.Q13 }}'
+      with_items: '{{ qualtrics_vars.responses }}'
+
+#    - name: Debug Qualtrics Vars
+#      debug:
+#        msg: "The FILE URL is '{{ item.Q12_FILE_ID }}' and the SOL Number is '{{ item.Q1 }}'"
+#      with_items: '{{ qualtrics_vars.responses }}'
 
 #    - name: Insert Attachments
 #      lineinfile:
 #        path: '{{ solicitation_html_path }}'
 #        insertafter: '<td id="attach">'
-#        line: '<a href="documents/{{  }}/{{ item }}" target="_blank">{{ item }}</a><br><br>'
+#        line: '<a href="documents/{{ item.Q2 }}/{{ item.Q15_FILE_NAME }}" target="_blank">{{ item.Q15_FILE_NAME }}</a><br><br>'
 #        backup: yes
 #      with_items: '{{ qualtrics_vars.responses }}'
-#      when: solicitation.attachment
+#      when: qualtrics_vars.responses.Q13
 #      ignore_errors: True
 
 #    - name: Insert Addendums
@@ -125,23 +148,23 @@
 #      when: solicitation.addendum
 #      ignore_errors: True
 
-    - name: Register Date
-      set_fact:
-        date: "{{ lookup('pipe','date +%m-%d-%y') }}"
+#    - name: Register Date
+#      set_fact:
+#        date: "{{ lookup('pipe','date +%m-%d-%y') }}"
 
-    - name: Register Hour
-      set_fact:
-        hour: "{{ ansible_date_time.hour }}"
+#    - name: Register Hour
+#      set_fact:
+#        hour: "{{ ansible_date_time.hour }}"
 
-    - name: Check for Expired Solicitations
-      raw: grep "{{ date }} {{ hour }}" "{{ solicitation_html_path }}"
-      register: check
-      ignore_errors: True
+#    - name: Check for Expired Solicitations
+#      raw: grep "{{ date }} {{ hour }}" "{{ solicitation_html_path }}"
+#      register: check
+#      ignore_errors: True
 
-    - name: Fact
-      set_fact:
-        expire_list: "{{ check.stdout_lines | list }}"
-      ignore_errors: True
+#    - name: Fact
+#      set_fact:
+#        expire_list: "{{ check.stdout_lines | list }}"
+#      ignore_errors: True
 
 #    - name: Remove Expired Solicitations
 #      replace:
