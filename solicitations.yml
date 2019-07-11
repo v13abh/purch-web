@@ -303,7 +303,27 @@
       with_items: '{{ qualtrics_vars.responses }}'
       when: attachment_count | int == 10
 
+    - name: Check to see if there is an Addendum
+      set_fact:
+        addendum: '{{ item.Q11 }}'
+      with_items: '{{ qualtrics_vars.responses }}'
 
+    - name: Insert Addendum
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ item.Q2 }}/{{ item.Q12_FILE_NAME }}" target="_blank">{{ item.Q12_FILE_NAME }}</a><br><br>'
+        backup: yes
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: addendum
+      ignore_errors: True
+
+    - name: Download Addendum
+      get_url:
+        url: '{{ item.Q12_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q12_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: addendum
 
 #    - name: Insert Addendums
 #      lineinfile:
