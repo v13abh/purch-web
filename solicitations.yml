@@ -115,7 +115,8 @@
     - name: Download Solicitation Files
       get_url:
         url: '{{ item.Q10_FILE_ID }}'
-        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q10_FILE_NAME }}' 
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q10_FILE_NAME }}'
+      when: '{{ item.Q10_FILE_NAME }}' 
       with_items: '{{ qualtrics_vars.responses }}'
 
     - name: Check to see if there are Attachments
@@ -140,7 +141,7 @@
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q15_FILE_NAME }}" target="_blank">{{ item.Q15_FILE_NAME }}</a><br><br>'
         backup: yes
       with_items: '{{ qualtrics_vars.responses }}'
-      when: attachments
+      when: attachment_count | int == 1
       ignore_errors: True
 
     - name: Download 1st Attachment
@@ -148,8 +149,9 @@
         url: '{{ item.Q15_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q15_FILE_NAME }}' 
       with_items: '{{ qualtrics_vars.responses }}'
-      when: attachments
-
+      when: attachment_count | int == 1
+      ignore_errors: True
+ 
     - name: Insert 2nd Attachment
       lineinfile:
         path: '{{ solicitation_html_path }}'
@@ -348,9 +350,14 @@
       register: check
       ignore_errors: True
 
+#    - name: Debug Check
+#      debug:
+#        msg: '{{ check }}'
+
     - name: Create List of Expired Solicitations
       set_fact:
         expire_list: "{{ check.stdout_lines | list }}"
+      when: check.stdout_lines
       ignore_errors: True
 
     - name: Remove Expired Solicitations
@@ -359,6 +366,7 @@
         regexp: "(^{{ expire_list[0] }})([^$]*?)({{ expire_list[1] }})"
         replace: ''
         backup: yes
+      when: check.stdout_lines
       ignore_errors: True
 
 #    - name: Copy Files to FTP
