@@ -133,7 +133,7 @@
 #        msg: '{{ attachments }}' #"The FILE URL is '{{ item.Q12_FILE_ID }}' and the SOL Number is '{{ item.Q1 }}'"
 #      with_items: '{{ qualtrics_vars.responses }}'
 
-    - name: Insert First Attachment
+    - name: Insert 1st Attachment
       lineinfile:
         path: '{{ solicitation_html_path }}'
         insertafter: '<td id="attach">'
@@ -143,14 +143,14 @@
       when: attachments
       ignore_errors: True
 
-    - name: Download First Attachment
+    - name: Download 1st Attachment
       get_url:
         url: '{{ item.Q15_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q15_FILE_NAME }}' 
       with_items: '{{ qualtrics_vars.responses }}'
       when: attachments
 
-    - name: Insert Second Attachment
+    - name: Insert 2nd Attachment
       lineinfile:
         path: '{{ solicitation_html_path }}'
         insertafter: '<td id="attach">'
@@ -160,13 +160,148 @@
       when: attachment_count | int == 2
       ignore_errors: True
 
-    - name: Download Second Attachment
+    - name: Download 2nd Attachment
       get_url:
         url: '{{ item.Q16_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q16_FILE_NAME }}' 
       with_items: '{{ qualtrics_vars.responses }}'
       when: attachment_count | int == 2
 
+    - name: Insert 3rd Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ item.Q2 }}/{{ item.Q17_FILE_NAME }}" target="_blank">{{ item.Q17_FILE_NAME }}</a><br><br>'
+        backup: yes
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 3
+      ignore_errors: True
+
+    - name: Download 3rd Attachment
+      get_url:
+        url: '{{ item.Q17_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q17_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 3
+
+    - name: Insert 4th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ item.Q2 }}/{{ item.Q18_FILE_NAME }}" target="_blank">{{ item.Q18_FILE_NAME }}</a><br><br>'
+        backup: yes
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 4
+      ignore_errors: True
+
+    - name: Download 4th Attachment
+      get_url:
+        url: '{{ item.Q18_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q18_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 4
+
+    - name: Insert 5th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ item.Q2 }}/{{ item.Q19_FILE_NAME }}" target="_blank">{{ item.Q19_FILE_NAME }}</a><br><br>'
+        backup: yes
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 5
+      ignore_errors: True
+
+    - name: Download 5th Attachment
+      get_url:
+        url: '{{ item.Q19_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q19_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 5
+
+    - name: Insert 6th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ item.Q2 }}/{{ item.Q20_FILE_NAME }}" target="_blank">{{ item.Q20_FILE_NAME }}</a><br><br>'
+        backup: yes
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 6
+      ignore_errors: True
+
+    - name: Download 6th Attachment
+      get_url:
+        url: '{{ item.Q20_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q20_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 6
+
+    - name: Insert 7th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ item.Q2 }}/{{ item.Q21_FILE_NAME }}" target="_blank">{{ item.Q21_FILE_NAME }}</a><br><br>'
+        backup: yes
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 7
+      ignore_errors: True
+
+    - name: Download 7th Attachment
+      get_url:
+        url: '{{ item.Q21_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q21_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 7
+
+    - name: Insert 8th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ item.Q2 }}/{{ item.Q22_FILE_NAME }}" target="_blank">{{ item.Q22_FILE_NAME }}</a><br><br>'
+        backup: yes
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 8
+      ignore_errors: True
+
+    - name: Download 8th Attachment
+      get_url:
+        url: '{{ item.Q22_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q22_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 8
+
+    - name: Insert 9th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ item.Q2 }}/{{ item.Q23_FILE_NAME }}" target="_blank">{{ item.Q23_FILE_NAME }}</a><br><br>'
+        backup: yes
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 9
+      ignore_errors: True
+
+    - name: Download 9th Attachment
+      get_url:
+        url: '{{ item.Q23_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q23_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 9
+
+    - name: Insert 10th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ item.Q2 }}/{{ item.Q24_FILE_NAME }}" target="_blank">{{ item.Q24_FILE_NAME }}</a><br><br>'
+        backup: yes
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 10
+      ignore_errors: True
+
+    - name: Download 10th Attachment
+      get_url:
+        url: '{{ item.Q24_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q24_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 10
 
 
 
