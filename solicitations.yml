@@ -123,6 +123,11 @@
         attachments: '{{ item.Q13 }}'
       with_items: '{{ qualtrics_vars.responses }}'
 
+    - name: Check to see number of Attachments
+      set_fact:
+        attachment_count: '{{ item.Q14 }}'
+      with_items: '{{ qualtrics_vars.responses }}'
+
 #    - name: Debug Attachments Var
 #      debug:
 #        msg: '{{ attachments }}' #"The FILE URL is '{{ item.Q12_FILE_ID }}' and the SOL Number is '{{ item.Q1 }}'"
@@ -137,6 +142,32 @@
       with_items: '{{ qualtrics_vars.responses }}'
       when: attachments
       ignore_errors: True
+
+    - name: Download First Attachment
+      get_url:
+        url: '{{ item.Q15_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q15_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachments
+
+    - name: Insert Second Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="attach">'
+        line: '<a href="documents/{{ item.Q2 }}/{{ item.Q16_FILE_NAME }}" target="_blank">{{ item.Q16_FILE_NAME }}</a><br><br>'
+        backup: yes
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 2
+      ignore_errors: True
+
+    - name: Download Second Attachment
+      get_url:
+        url: '{{ item.Q16_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q16_FILE_NAME }}' 
+      with_items: '{{ qualtrics_vars.responses }}'
+      when: attachment_count | int == 2
+
+
 
 
 #    - name: Insert Addendums
