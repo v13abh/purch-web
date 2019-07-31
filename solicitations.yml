@@ -12,13 +12,11 @@
       file:
         path: "response.zip"
         state: absent
-      ignore_errors: True
    
     - name: Delete Old Response File
       file:
         path: "Purchasing Solicitations.json"
         state: absent
-      ignore_errors: True
 
     - name: Register Current Hour as End Time
       set_fact:
@@ -26,7 +24,7 @@
     
     - name: Munge Epoch Time Minus 5 Minutes for Start Time
       set_fact:
-        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 5 )  ) }}"
+        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 15 )  ) }}"
 
     - name: Register Current Date
       set_fact:
@@ -55,6 +53,7 @@
     - name: Download Qualtrics Response Export
       shell: |
         curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ qualtrics_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
+      #ignore_errors: True
 
     - name: Unzip Response File
       shell: |
@@ -76,7 +75,7 @@
             <td id="data">{{ item.Q5 }}<br> email: <a href="mailto:{{ item.Q6 }}">{{ item.Q6 }}</a></td>
             <td id="data">{{ item.Q7 }}</td>
             <td id="data">{{ item.Q8 }} at {{ item.Q9 }} CT</td>
-            <td id="data">[ <a href="documents/{{ item.Q2 }}/{{ item.Q2 }} {{ item.Q3 }}.pdf" target="_blank">{{ item.Q2 }}</a> ]<br><br></td>
+            <td id="data">[ <a href="documents/{{ item.Q2 }}/{{ item.Q10_FILE_NAME }}" target="_blank">{{ item.Q2 }}</a> ]<br><br></td>
             <td id="attach">
             </td>
           </tr>
