@@ -7,100 +7,19 @@
   - my_vars.yml
 
   tasks:
-    - name: Check if there are files to File
-      raw: "ls '{{ cert_new_path }}'"
-      register: dir_files
+    - name: Import JSON as Variables
+      set_fact: 
+        qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
+      ignore_errors: True
 
-    - name: Ensure the previous Directories List has been deleted
-      file:
-        path: '{{ cert_new_path }}/directories.txt'
-        state: absent
-
-    - name: Ensure the previous Certificates List has been deleted
-      file:
-        path: '{{ cert_new_path }}/certificates.txt'
-        state: absent
-
-    - name: Create the List of Certificates
-      raw: ls '{{ cert_new_path }}' > '{{ cert_new_path }}/certificates.txt'
-      when: dir_files.stdout != ""
-
-    - name: Remove the list filename from the Certificates List
-      replace:
-        path: '{{ cert_new_path }}/certificates.txt'
-        regexp: '\bcertificates.txt\n\b'
-        replace: ''
-      when: dir_files.stdout != ""
-
-    - name: Remove Dir Filename from the Certificates List
-      replace:
-        path: '{{ cert_new_path }}/certificates.txt'
-        regexp: '\bdirectories.txt\n\b'
-        replace: ''
-      when: dir_files.stdout != ""
-
-    - name: Copy the Filename List to create the Directories List
-      raw: cp '{{ cert_new_path }}/certificates.txt' '{{ cert_new_path }}/directories.txt'
-      when: dir_files.stdout != ""
-
-    - name: Remove Extensions from the Directories List
-      replace:
-        path: '{{ cert_new_path }}/directories.txt'
-        regexp: '\b\.pdf\b'
-        replace: ''
-      when: dir_files.stdout != ""
-
-    - name: Remove Dates from the Directories List
-      replace:
-        path: '{{ cert_new_path }}/directories.txt'
-        regexp: ' *([\d][\d]+\-?[\d][\d]+\-?[\d][\d]+\-?)+'
-        replace: ''
-      when: dir_files.stdout != ""
-
-    - name: Remove WC from the Directories List
-      replace:
-        path: '{{ cert_new_path }}/directories.txt'
-        regexp: '\b WC\b'
-        replace: ''
-      when: dir_files.stdout != ""
-
-    - name: Read List of Directories and Register in Memory
-      raw: cat '{{ cert_new_path }}/directories.txt'
-      register: directories
-      when: dir_files.stdout != ""
-
-    - name: Read List of Certificates and Register in Memory
-      raw: cat '{{ cert_new_path }}/certificates.txt'
-      register: certificates
-      when: dir_files.stdout != ""
+    - name: Debug 1 Time
+      debug:
+        msg: "This is {{ item.Q25 }}"
+      with_items: '{{ qualtrics_vars.responses }}'
 
     - name: Ensure Directories Exist
       file: 
-        path: '{{ cert_file_path }}/{{ item }}'
+        path: '{{ cert_file_path }}/{{ item.Q26 }}'
         state: directory
-      with_items: '{{ directories.stdout_lines }}'
-      register: var_dirs
-      when: dir_files.stdout != ""
+      with_items: '{{ qualtrics_vars.responses }}'
 
-    - name: Set List of Certificates and Directories as Fact
-      set_fact:
-        var_dirs: '{{ directories.stdout_lines }}'
-        var_certs: '{{ certificates.stdout_lines }}'
-      when: dir_files.stdout != ""
-
-    - name: File the Digital Paperwork
-      raw: "mv '{{ cert_new_path }}'/'{{ item.1 }}' '{{ cert_file_path }}'/'{{item.0 }}'/'{{ item.1 }}'"
-      loop: "{{ var_dirs | zip(var_certs) | list }}"
-      when: dir_files.stdout != ""
-
-    - name: "Cleaning up: Delete the Directories List"
-      file:
-        path: '{{ cert_new_path }}/directories.txt'
-        state: absent
-      when: dir_files.stdout != ""
-
-    - name: "Cleaning up: Delete the Certificates List"
-      file:
-        path: '{{ cert_new_path }}/certificates.txt'
-        state: absent
-      when: dir_files.stdout != ""
