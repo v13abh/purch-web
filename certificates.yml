@@ -1,44 +1,36 @@
 ---
+- name: Import JSON as Variables
+  set_fact: 
+    qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
+  ignore_errors: True
 
-- hosts: all
-  become: true
+- name: Debug 1 Time
+  debug:
+    msg: "This is {{ item.Q25 }}"
+  with_items: '{{ qualtrics_vars.responses }}'
 
-  vars_files:
-  - my_vars.yml
+- name: Ensure Directories Exist
+  file: 
+    path: '{{ cert_file_path }}/{{ item.Q26 }}'
+    state: directory
+  with_items: '{{ qualtrics_vars.responses }}'
 
-  tasks:
-    - name: Import JSON as Variables
-      set_fact: 
-        qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
-      ignore_errors: True
+- name: Download Certificates and Place In Folders
+  get_url:
+    url: "{{ item.Q30_FILE_ID }}"
+    dest: "{{ cert_file_path }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27 }}.pdf"
+  with_items: "{{ qualtrics_vars.responses }}"
 
-    - name: Debug 1 Time
-      debug:
-        msg: "This is {{ item.Q25 }}"
-      with_items: '{{ qualtrics_vars.responses }}'
+- name: Check for WC on Certs
+  debug:
+    msg: '{{ item.Q28 }}'
+  with_items: "{{ qualtrics_vars.responses }}"
+  register: wc
 
-    - name: Ensure Directories Exist
-      file: 
-        path: '{{ cert_file_path }}/{{ item.Q26 }}'
-        state: directory
-      with_items: '{{ qualtrics_vars.responses }}'
-
-    - name: Download Certificates and Place In Folders
-      get_url:
-        url: "{{ item.Q30_FILE_ID }}"
-        dest: "{{ cert_file_path }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27 }}.pdf"
-      with_items: "{{ qualtrics_vars.responses }}"
-
-    - name: Check for WC on Certs
-      debug:
-        msg: '{{ item.Q28 }}'
-      with_items: "{{ qualtrics_vars.responses }}"
-      register: wc
-
-    - name: Rename WC Certs
-      raw: mv "{{ cert_file_path }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27}}.pdf" "{{ cert_file_path }}/{{item.Q26 }}/{{ item.Q26 }} {{ item.Q27}} WC {{ item.Q29 }}.pdf"
-      when: item.Q28
-      with_items: "{{ qualtrics_vars.responses }}"
+- name: Rename WC Certs
+  raw: mv "{{ cert_file_path }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27}}.pdf" "{{ cert_file_path }}/{{item.Q26 }}/{{ item.Q26 }} {{ item.Q27}} WC {{ item.Q29 }}.pdf"
+  when: item.Q28
+  with_items: "{{ qualtrics_vars.responses }}"
 
 
 

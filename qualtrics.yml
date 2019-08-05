@@ -64,3 +64,8 @@
         qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
       ignore_errors: True
 
+    - name: Process any COIs that need to be filed
+      include: certificates.yml
+      when: qualtrics_vars != ''
+
+
