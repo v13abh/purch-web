@@ -23,3 +23,22 @@
         state: directory
       with_items: '{{ qualtrics_vars.responses }}'
 
+    - name: Download Certificates and Place In Folders
+      get_url:
+        url: "{{ item.Q30_FILE_ID }}"
+        dest: "{{ cert_file_path }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27 }}.pdf"
+      with_items: "{{ qualtrics_vars.responses }}"
+
+    - name: Check for WC on Certs
+      debug:
+        msg: '{{ item.Q28 }}'
+      with_items: "{{ qualtrics_vars.responses }}"
+      register: wc
+
+    - name: Rename WC Certs
+      raw: mv "{{ cert_file_path }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27}}.pdf" "{{ cert_file_path }}/{{item.Q26 }}/{{ item.Q26 }} {{ item.Q27}} WC {{ item.Q29 }}.pdf"
+      when: item.Q28
+      with_items: "{{ qualtrics_vars.responses }}"
+
+
+
