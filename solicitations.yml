@@ -32,8 +32,9 @@
     get_url:
       url: '{{ item.Q10_FILE_ID }}'
       dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q10_FILE_NAME }}'
-#    when: '{{ item.Q10_FILE_NAME }}' 
+    when: item.Q10_FILE_NAME
     with_items: '{{ qualtrics_vars.responses }}'
+    ignore_errors: True
 
   - name: Check to see if there are Attachments
     set_fact:
@@ -79,6 +80,7 @@
       dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q16_FILE_NAME }}' 
     with_items: '{{ qualtrics_vars.responses }}'
     when: attachment_count | int >= 2
+    ignore_errors: True
 
   - name: Insert 3rd Attachment
     lineinfile:
@@ -96,6 +98,7 @@
       dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q17_FILE_NAME }}' 
     with_items: '{{ qualtrics_vars.responses }}'
     when: attachment_count | int >= 3
+    ignore_errors: True
 
   - name: Insert 4th Attachment
     lineinfile:
@@ -113,6 +116,7 @@
       dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q18_FILE_NAME }}' 
     with_items: '{{ qualtrics_vars.responses }}'
     when: attachment_count | int >= 4
+    ignore_errors: True
 
   - name: Insert 5th Attachment
     lineinfile:
@@ -130,6 +134,7 @@
       dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q19_FILE_NAME }}' 
     with_items: '{{ qualtrics_vars.responses }}'
     when: attachment_count | int >= 5
+    ignore_errors: True
 
   - name: Insert 6th Attachment
     lineinfile:
@@ -147,6 +152,7 @@
       dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q20_FILE_NAME }}' 
     with_items: '{{ qualtrics_vars.responses }}'
     when: attachment_count | int >= 6
+    ignore_errors: True
 
   - name: Insert 7th Attachment
     lineinfile:
@@ -164,6 +170,7 @@
       dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q21_FILE_NAME }}' 
     with_items: '{{ qualtrics_vars.responses }}'
     when: attachment_count | int >= 7
+    ignore_errors: True
 
   - name: Insert 8th Attachment
     lineinfile:
@@ -181,6 +188,7 @@
       dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q22_FILE_NAME }}' 
     with_items: '{{ qualtrics_vars.responses }}'
     when: attachment_count | int >= 8
+    ignore_errors: True
 
   - name: Insert 9th Attachment
     lineinfile:
@@ -198,6 +206,7 @@
       dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q23_FILE_NAME }}' 
     with_items: '{{ qualtrics_vars.responses }}'
     when: attachment_count | int >= 9
+    ignore_errors: True
 
   - name: Insert 10th Attachment
     lineinfile:
@@ -215,6 +224,7 @@
       dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q24_FILE_NAME }}' 
     with_items: '{{ qualtrics_vars.responses }}'
     when: attachment_count | int >= 10
+    ignore_errors: True
 
   - name: Check to see if there is an Addendum
     set_fact:
