@@ -20,6 +20,7 @@
     url: "{{ item.Q30_FILE_ID }}"
     dest: "{{ cert_file_path }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27 }}.pdf"
   with_items: "{{ qualtrics_vars.responses }}"
+  ignore_errors: yes
 
 - name: Check for WC on Certs
   debug:

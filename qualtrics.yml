@@ -22,9 +22,9 @@
       set_fact:
         end_time: "{{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
     
-    - name: Munge Epoch Time Minus 20 Minutes for Start Time
+    - name: Munge Epoch Time Minus 10 Minutes for Start Time
       set_fact:
-        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 20 )  ) }}"
+        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 10 )  ) }}"
 
     - name: Register Current Date
       set_fact:
@@ -64,8 +64,10 @@
         qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
       ignore_errors: True
 
-    - name: Process any COIs that need to be filed
-      include: certificates.yml
-      when: qualtrics_vars != ''
+#    - name: Process any COIs that need to be filed
+#      include: certificates.yml
+#      when: qualtrics_vars != ''
 
-
+#    - name: Process any Solicitations that need to be posted
+#      include: solicitations.yml
+#      when: qualtrics_vars != ''
