@@ -12,7 +12,7 @@
       file:
         path: "response.zip"
         state: absent
-   
+  
     - name: Delete Old Response File
       file:
         path: "Purchasing Solicitations.json"
@@ -21,7 +21,7 @@
     - name: Register Current Hour as End Time
       set_fact:
         end_time: "{{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
-    
+   
     - name: Munge Epoch Time Minus 10 Minutes for Start Time
       set_fact:
         start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 10 )  ) }}"
@@ -53,21 +53,26 @@
     - name: Download Qualtrics Response Export
       shell: |
         curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ qualtrics_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
-      #ignore_errors: True
+      ignore_errors: True
 
     - name: Unzip Response File
       shell: |
         unzip response.zip
+      ignore_errors: True
 
     - name: Import JSON as Variables
       set_fact:      
         qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
       ignore_errors: True
 
-#    - name: Process any COIs that need to be filed
-#      include: certificates.yml
-#      when: qualtrics_vars != ''
+    - name: Process any COIs that need to be filed
+      include: certificates.yml
+      when: qualtrics_vars.responses != ""
 
-#    - name: Process any Solicitations that need to be posted
-#      include: solicitations.yml
-#      when: qualtrics_vars != ''
+    - name: Process any Solicitations that need to be posted
+      include: solicitations.yml
+      when: qualtrics_vars != ""
+
+
+
+
