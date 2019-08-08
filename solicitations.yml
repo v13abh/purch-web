@@ -1,5 +1,10 @@
 ---
 
+  - name: Import JSON as Variables
+    set_fact:      
+      qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
+    ignore_errors: True
+
   - name: Modify Solicitation HTML
     blockinfile:
       path: '{{ solicitation_html_path }}'
@@ -277,14 +282,18 @@
     ignore_errors: True
 
   - name: Copy Files to FTP
-    raw: ncftpput -R -u '{{ ftp_user_purch }}' -p '{{ ftp_pass_purch }}' '{{ ftp_url_purch }}' '{{ ftp_path_purch }}' /'{{ solicitation_doc_path }}/{{ item.Q2 }}'/
+    command: "ncftpput -R -u {{ ftp_user_purch }} -p {{ ftp_pass_purch }} {{ ftp_url_purch }} {{ ftp_path_purch }} /{{ solicitation_doc_path }}/{{ item.Q2 }}"
     with_items: '{{ qualtrics_vars.responses }}' 
     ignore_errors: True
 
   - name: Copy Index to FTP
-    raw: ncftpput -u '{{ ftp_user_purch }}' -p '{{ ftp_pass_purch }}' '{{ ftp_url_purch }}' /solicitations '{{ solicitation_html_path }}'
+    command: ncftpput -u "{{ ftp_user_purch }}" -p "{{ ftp_pass_purch }}" "{{ ftp_url_purch }}" /solicitations "{{ solicitation_html_path }}"
     ignore_errors: True
 
-
+  - name: Notify Slack of Posting Completion
+    slack:
+      token: '{{ slack_token }}'
+      msg: The Solicitation for '{{ item.Q2 }}' has been posted.
+    with_items: "{{ qualtrics_vars.responses }}"
 
 

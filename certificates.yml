@@ -1,25 +1,87 @@
 ---
-#- name: Import JSON as Variables
-#  set_fact: 
-#    qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
-#  ignore_errors: True
 
-#- name: Debug 1 Time
-#  debug:
-#    msg: "This is {{ item.Q25 }}"
-#  with_items: '{{ qualtrics_vars.responses }}'
+- name: Delete Old Response Zip
+  file:
+    path: "response.zip"
+    state: absent
+
+- name: Delete Old Response File
+  file:
+    path: "Purchasing Solicitations.json"
+    state: absent
+
+- name: Register Current Hour as End Time
+  set_fact:
+    end_time: "{{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
+
+- name: Munge Epoch Time Minus 15 Minutes for Start Time
+  set_fact:
+    start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 15 )  ) }}"
+
+- name: Register Current Date
+  set_fact:
+    date: "{{ ansible_date_time.date }}"
+
+- name: Create Qualtrics Response Export
+  shell: |
+    curl -X POST -H 'X-API-TOKEN: {{ qualtrics_api_token }}' -H 'Content-Type: application/json' -d '{ 
+    "surveyId": "{{ qualtrics_survey_id }}",
+    "format": "json",
+    "startDate": "{{ date }}T{{ start_time }}:00-05:00",
+    "endDate": "{{ date }}T{{ end_time }}:00-05:00",
+    "useLabels": true
+    }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
+  register: qualtrics_export
+
+- name: Register Qualtrics Request ID
+  set_fact:
+    qualtrics_request_id: '{{ (qualtrics_export.stdout | from_json).result.id }}'
+
+- name: Check Status of Qualtrics Response Export
+  shell: |
+    curl -H 'X-API-TOKEN: {{ qualtrics_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}'
+  register: qualtrics_progress
+
+- name: Download Qualtrics Response Export
+  shell: |
+    curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ qualtrics_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
+  ignore_errors: True
+
+- name: Unzip Response File
+  shell: |
+    unzip response.zip
+  ignore_errors: True
+
+- name: Import JSON as Variables
+  set_fact:      
+    qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
+  ignore_errors: True
+
+- name: Process any COIs that need to be filed
+  include: certificates.yml
+  when: qualtrics_vars.responses != ""
+
+- name: Process any Solicitations that need to be posted
+  include: solicitations.yml
+  when: qualtrics_vars != ""
+
+- name: Import JSON as Variables
+  set_fact: 
+    qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
+  ignore_errors: True
 
 - name: Ensure Directories Exist
   file: 
-    path: '{{ cert_file_path }}/{{ item.Q26 }}'
+    path: '{{ cert_new_path }}/{{ item.Q26 }}'
     state: directory
   with_items: '{{ qualtrics_vars.responses }}'
 
 - name: Download Certificates and Place In Folders
   get_url:
     url: "{{ item.Q30_FILE_ID }}"
-    dest: "{{ cert_file_path }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27 }}.pdf"
+    dest: "{{ cert_new_path }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27 }}.pdf"
   with_items: "{{ qualtrics_vars.responses }}"
+  register: download
   ignore_errors: yes
 
 - name: Check for WC on Certs
@@ -29,9 +91,19 @@
   register: wc
 
 - name: Rename WC Certs
-  raw: mv "{{ cert_file_path }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27}}.pdf" "{{ cert_file_path }}/{{item.Q26 }}/{{ item.Q26 }} {{ item.Q27}} WC {{ item.Q29 }}.pdf"
+  raw: mv "{{ cert_new_path }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27}}.pdf" "{{ cert_new_path }}/{{item.Q26 }}/{{ item.Q26 }} {{ item.Q27}} WC {{ item.Q29 }}.pdf"
   when: item.Q28 == "Yes"
   with_items: "{{ qualtrics_vars.responses }}"
 
+- name: Move COIs from NORFILE to ISI
+  raw: mv "{{ cert_new_path }}"/* "{{ cert_file_path }}"
+  ignore_errors: True
 
+- name: Notify Slack of File Completion
+  slack:
+    token: '{{ slack_token }}'
+    msg: The COI for '{{ item.Q26 }}' has been filed.
+  with_items: "{{ qualtrics_vars.responses }}"
 
+ 
+  
