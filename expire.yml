@@ -1,0 +1,49 @@
+---
+
+- hosts: all
+  become: true
+
+  vars_files:
+  - my_vars.yml
+
+  tasks:
+
+  - name: Register Date
+    set_fact:
+      date: "{{ lookup('pipe','date +%m-%d-%y') }}"
+
+  - name: Register Hour
+    set_fact:
+      hour: "{{ ansible_date_time.hour }}"
+
+  - name: Check for Expired Solicitations
+    raw: grep "{{ date }} {{ hour }}" "{{ solicitation_html_path }}"
+    register: check
+    ignore_errors: True
+
+  - name: Create List of Expired Solicitations
+    set_fact:
+      expire_list: "{{ check.stdout_lines | list }}"
+    when: check.stdout_lines
+    ignore_errors: True
+
+  - name: Remove Expired Solicitations
+    replace:
+      path: '{{ solicitation_html_path }}'
+      regexp: "(^{{ expire_list[0] }})([^$]*?)({{ expire_list[1] }})"
+      replace: ''
+      backup: yes
+    when: check.stdout_lines
+    ignore_errors: True
+
+  - name: Copy Index to FTP
+    command: ncftpput -u "{{ ftp_user_purch }}" -p "{{ ftp_pass_purch }}" "{{ ftp_url_purch }}" /solicitations "{{ solicitation_html_path }}"
+    ignore_errors: True
+
+  - name: Notify Slack of Expiration Removal
+    slack:
+      token: '{{ slack_token }}'
+      msg: The Solicitation for '{{ item.Q2 }}' has been posted.
+    with_items: "{{ qualtrics_vars.responses }}"
+
+

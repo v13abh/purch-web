@@ -1,0 +1,11 @@
+---
+
+  - name: Copy Files to FTP
+    command: ncftpput -R -u "{{ ftp_user_purch }}" -p "{{ ftp_pass_purch }}" "{{ ftp_url_purch }}" "{{ ftp_path_purch }}" "/{{ solicitation_doc_path }}/{{ item.Q2 }}"
+    with_items: '{{ qualtrics_vars.responses }}' 
+    ignore_errors: True
+
+  - name: Copy Index to FTP
+    command: ncftpput -u "{{ ftp_user_purch }}" -p "{{ ftp_pass_purch }}" "{{ ftp_url_purch }}" /solicitations "{{ solicitation_html_path }}"
+    ignore_errors: True
+

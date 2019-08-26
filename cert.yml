@@ -1,0 +1,39 @@
+---
+
+  - name: Ensure Directories Exist
+    file: 
+      path: '{{ cert_new_temp }}/{{ item.Q26 }}'
+      state: directory
+    with_items: '{{ qualtrics_vars.responses }}'
+  
+  - name: Download Certificates and Place In Folders
+    get_url:
+      url: "{{ item.Q30_FILE_ID }}"
+      dest: "{{ cert_new_temp }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27 }}.pdf"
+    with_items: "{{ qualtrics_vars.responses }}"
+    register: download
+    ignore_errors: yes
+  
+  - name: Check for WC on Certs
+    debug:
+      msg: '{{ item.Q28 }}'
+    with_items: "{{ qualtrics_vars.responses }}"
+    register: wc
+  
+  - name: Rename WC Certs
+    raw: mv "{{ cert_new_temp }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27}}.pdf" "{{ cert_new_temp }}/{{item.Q26 }}/{{ item.Q26 }} {{ item.Q27}} WC {{ item.Q29 }}.pdf"
+    when: item.Q28 == "Yes"
+    with_items: "{{ qualtrics_vars.responses }}"
+  
+  - name: Move COIs from NORFILE to ISI
+    raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+    ignore_errors: True
+  
+  - name: Notify Slack of File Completion
+    slack:
+      token: '{{ slack_token }}'
+      msg: The COI for '{{ item.Q26 }}' has been filed.
+    with_items: "{{ qualtrics_vars.responses }}"
+  
+   
+    

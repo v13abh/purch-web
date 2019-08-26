@@ -1,0 +1,8 @@
+---
+
+  - name: Notify Slack of Posting Completion
+    slack:
+      token: '{{ slack_token }}'
+      msg: The Solicitation number '{{ item.Q2 }}' titled '{{ item.Q3 }}'  for '{{ item.Q5 }}' has been posted.
+    with_items: "{{ qualtrics_vars.responses }}"
+
