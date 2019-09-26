@@ -1,39 +1,148 @@
 ---
 
-  - name: Ensure Directories Exist
-    file: 
-      path: '{{ cert_new_temp }}/{{ item.Q26 }}'
-      state: directory
-    with_items: '{{ qualtrics_vars.responses }}'
+- hosts: all
+  become: true
+
+  vars_files:
+  - my_vars.yml
+
+  tasks:
+
+    - name: Delete Old Response Zip
+      file:
+        path: "response.zip"
+        state: absent
   
-  - name: Download Certificates and Place In Folders
-    get_url:
-      url: "{{ item.Q30_FILE_ID }}"
-      dest: "{{ cert_new_temp }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27 }}.pdf"
-    with_items: "{{ qualtrics_vars.responses }}"
-    register: download
-    ignore_errors: yes
-  
-  - name: Check for WC on Certs
-    debug:
-      msg: '{{ item.Q28 }}'
-    with_items: "{{ qualtrics_vars.responses }}"
-    register: wc
-  
-  - name: Rename WC Certs
-    raw: mv "{{ cert_new_temp }}/{{ item.Q26 }}/{{ item.Q26 }} {{ item.Q27}}.pdf" "{{ cert_new_temp }}/{{item.Q26 }}/{{ item.Q26 }} {{ item.Q27}} WC {{ item.Q29 }}.pdf"
-    when: item.Q28 == "Yes"
-    with_items: "{{ qualtrics_vars.responses }}"
-  
-  - name: Move COIs from NORFILE to ISI
-    raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
-    ignore_errors: True
-  
-  - name: Notify Slack of File Completion
-    slack:
-      token: '{{ slack_token }}'
-      msg: The COI for '{{ item.Q26 }}' has been filed.
-    with_items: "{{ qualtrics_vars.responses }}"
-  
+    - name: Delete Old Response File
+      file:
+        path: "Purchasing Solicitations.json"
+        state: absent
+
+    - name: Register Current Hour as End Time
+      set_fact:
+        end_time: "{{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
    
+    - name: Munge Epoch Time Minus 16 Minutes for Start Time
+      set_fact:
+        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 16 )  ) }}"
+
+    - name: Register Current Date
+      set_fact:
+        date: "{{ ansible_date_time.date }}"
+
+    - name: Create Qualtrics Response Export
+      shell: |
+        curl -X POST -H 'X-API-TOKEN: {{ cert_api_token }}' -H 'Content-Type: application/json' -d '{ 
+        "surveyId": "{{ cert_survey_id }}",
+        "format": "json",
+        "startDate": "{{ date }}T{{ start_time }}:00-05:00",
+        "endDate": "{{ date }}T{{ end_time }}:00-05:00",
+        "useLabels": true
+        }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
+      register: cert_export
+
+    - name: Register Qualtrics Request ID
+      set_fact:
+        cert_request_id: '{{ (cert_export.stdout | from_json).result.id }}'
+
+    - name: Check Status of Qualtrics Response Export
+      shell: |
+        curl -H 'X-API-TOKEN: {{ cert_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ cert_request_id }}'
+      register: cert_progress
+
+    - name: Download Qualtrics Response Export
+      shell: |
+        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ cert_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ cert_request_id }}/file" -o response.zip
+      ignore_errors: True
+
+    - name: Unzip Response File
+      unarchive:
+        src: response.zip
+        dest: .
+      ignore_errors: True
+
+    - name: Import JSON as Variables
+      set_fact:      
+        cert_vars: "{{ lookup('file','Certificates.json') | from_json }}"
+      ignore_errors: True
+
+
+###### Certificate 01
+
+    - name: Ensure Directories Exist
+      file: 
+        path: '{{ cert_new_temp }}/{{ item.name01 }}'
+        state: directory
+      with_items: '{{ cert_vars.responses }}'
     
+    - name: Download Certificates and Place In Folders
+      get_url:
+        url: "{{ item.pdf01_FILE_ID }}"
+        dest: "{{ cert_new_temp }}/{{ item.name01 }}/{{ item.name01 }} {{ item.expire01 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      register: download
+      ignore_errors: yes
+    
+    - name: Check for WC on Certs
+      debug:
+        msg: '{{ item.comp01 }}'
+      with_items: "{{ cert_vars.responses }}"
+      register: wc
+    
+    - name: Rename WC Certs
+      raw: mv "{{ cert_new_temp }}/{{ item.name01 }}/{{ item.name01 }} {{ item.expire01 }}.pdf" "{{ cert_new_temp }}/{{item.name01 }}/{{ item.name01 }} {{ item.expire01 }} WC {{ item.compexp01 }}.pdf"
+      when: item.comp01 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+    
+    - name: Move COIs from NORFILE to ISI
+      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+      ignore_errors: True
+    
+    - name: Notify Slack of File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name01 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: download
+    
+     
+
+###### Certificate 02
+
+    - name: Ensure Directories Exist
+      file: 
+        path: '{{ cert_new_temp }}/{{ item.name02 }}'
+        state: directory
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download Certificates and Place In Folders
+      get_url:
+        url: "{{ item.pdf02_FILE_ID }}"
+        dest: "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name02 }} {{ item.expire02 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      register: download
+      ignore_errors: yes
+    
+    - name: Check for WC on Certs
+      debug:
+        msg: '{{ item.comp02 }}'
+      with_items: "{{ cert_vars.responses }}"
+      register: wc
+    
+    - name: Rename WC Certs
+      raw: mv "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name02 }} {{ item.expire02 }}.pdf" "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name02 }} {{ item.expire02 }} WC {{ item.compexp02 }}.pdf"
+      when: item.comp02 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+    
+    - name: Move COIs from NORFILE to ISI
+      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+      ignore_errors: True
+    
+    - name: Notify Slack of File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name02 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: download
+    
+     

@@ -1,5 +1,69 @@
 ---
 
+- hosts: all
+  become: true
+
+  vars_files:
+  - my_vars.yml
+
+  tasks:
+
+  - name: Delete Old Response Zip
+    file:
+      path: "response.zip"
+      state: absent
+  
+  - name: Delete Old Response File
+    file:
+      path: "Purchasing Solicitations.json"
+      state: absent
+  
+  - name: Register Current Hour as End Time
+    set_fact:
+      end_time: "{{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
+  
+  - name: Munge Epoch Time Minus 11 Minutes for Start Time
+    set_fact:
+      start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 11 )  ) }}"
+  
+  - name: Register Current Date
+    set_fact:
+      date: "{{ ansible_date_time.date }}"
+  
+  - name: Create Qualtrics Response Export
+    shell: |
+      curl -X POST -H 'X-API-TOKEN: {{ qualtrics_api_token }}' -H 'Content-Type: application/json' -d '{ 
+      "surveyId": "{{ qualtrics_survey_id }}",
+      "format": "json",
+      "startDate": "{{ date }}T{{ start_time }}:00-05:00",
+      "endDate": "{{ date }}T{{ end_time }}:00-05:00",
+      "useLabels": true
+      }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
+    register: qualtrics_export
+  
+  - name: Register Qualtrics Request ID
+    set_fact:
+      qualtrics_request_id: '{{ (qualtrics_export.stdout | from_json).result.id }}'
+  
+  - name: Check Status of Qualtrics Response Export
+    shell: |
+      curl -H 'X-API-TOKEN: {{ qualtrics_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}'
+    register: qualtrics_progress
+
+  - name: Wait for Qualtrics Response Report to be Created
+    wait_for:
+      timeout: 30
+  
+  - name: Download Qualtrics Response Export
+    shell: |
+      curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ qualtrics_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
+    ignore_errors: True
+  
+  - name: Unzip Response File
+    shell: |
+      unzip response.zip
+    ignore_errors: True
+ 
   - name: Import JSON as Variables
     set_fact:      
       qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
@@ -24,6 +88,7 @@
       backup: yes
       insertbefore: "end solicitations"
     with_items: '{{ qualtrics_vars.responses }}'
+    register: modified
     when: qualtrics_vars.responses != ""
 
   - name: Create Solicitation Directories
@@ -281,8 +346,12 @@
     when: check.stdout_lines
     ignore_errors: True
 
+  - name: Debug Modified
+    debug:
+      msg: '{{ modified }}'
+
   - name: Copy Files to FTP
-    command: "ncftpput -R -u {{ ftp_user_purch }} -p {{ ftp_pass_purch }} {{ ftp_url_purch }} {{ ftp_path_purch }} /{{ solicitation_doc_path }}/{{ item.Q2 }}"
+    command: ncftpput -R -u "{{ ftp_user_purch }}" -p "{{ ftp_pass_purch }}" "{{ ftp_url_purch }}" "{{ ftp_path_purch }}" "/{{ solicitation_doc_path }}/{{ item.Q2 }}"
     with_items: '{{ qualtrics_vars.responses }}' 
     ignore_errors: True
 

@@ -40,10 +40,10 @@
     command: ncftpput -u "{{ ftp_user_purch }}" -p "{{ ftp_pass_purch }}" "{{ ftp_url_purch }}" /solicitations "{{ solicitation_html_path }}"
     ignore_errors: True
 
-  - name: Notify Slack of Expiration Removal
-    slack:
-      token: '{{ slack_token }}'
-      msg: The Solicitation for '{{ item.Q2 }}' has been posted.
-    with_items: "{{ qualtrics_vars.responses }}"
+#  - name: Notify Slack of Expiration Removal
+#    slack:
+#      token: '{{ slack_token }}'
+#      msg: The Solicitation for '{{ item.Q2 }}' has been posted.
+#    with_items: "{{ qualtrics_vars.responses }}"
 
 

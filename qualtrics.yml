@@ -15,16 +15,16 @@
   
     - name: Delete Old Response File
       file:
-        path: "Purchasing Solicitations.json"
+        path: "Certificates.json"
         state: absent
 
     - name: Register Current Hour as End Time
       set_fact:
         end_time: "{{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
    
-    - name: Munge Epoch Time Minus 20 Minutes for Start Time
+    - name: Munge Epoch Time Minus 16 Minutes for Start Time
       set_fact:
-        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 20 )  ) }}"
+        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 16 )  ) }}"
 
     - name: Register Current Date
       set_fact:
@@ -32,8 +32,8 @@
 
     - name: Create Qualtrics Response Export
       shell: |
-        curl -X POST -H 'X-API-TOKEN: {{ qualtrics_api_token }}' -H 'Content-Type: application/json' -d '{ 
-        "surveyId": "{{ qualtrics_survey_id }}",
+        curl -X POST -H 'X-API-TOKEN: {{ cert_api_token }}' -H 'Content-Type: application/json' -d '{ 
+        "surveyId": "{{ cert_survey_id }}",
         "format": "json",
         "startDate": "{{ date }}T{{ start_time }}:00-05:00",
         "endDate": "{{ date }}T{{ end_time }}:00-05:00",
@@ -43,17 +43,19 @@
 
     - name: Register Qualtrics Request ID
       set_fact:
-        qualtrics_request_id: '{{ (qualtrics_export.stdout | from_json).result.id }}'
+        cert_request_id: '{{ (qualtrics_export.stdout | from_json).result.id }}'
 
     - name: Check Status of Qualtrics Response Export
       shell: |
-        curl -H 'X-API-TOKEN: {{ qualtrics_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}'
+        curl -H 'X-API-TOKEN: {{ cert_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ cert_request_id }}'
       register: qualtrics_progress
+      until: qualtrics_progress.stdout.find("100.0") != -1
+      retries: 5
+      delay: 5
 
     - name: Download Qualtrics Response Export
       shell: |
-        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ qualtrics_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
-      ignore_errors: True
+        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ cert_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ cert_request_id }}/file" -o response.zip
 
     - name: Unzip Response File
       shell: |
@@ -62,17 +64,25 @@
 
     - name: Import JSON as Variables
       set_fact:      
-        qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
+        qualtrics_vars: "{{ lookup('file','Certificates.json') | from_json }}"
       ignore_errors: True
 
-    - name: Process any COIs that need to be filed
-      include: certificates.yml
-      when: qualtrics_vars.responses != ""
+#    - name: Process any COIs that need to be filed
+#      include: cert.yml
+#      when: qual_item.Q25  == "File an Insurance Certificate"
+#      with_items: '{{ qualtrics_vars.responses }}'
+#      run_once: True
+#      loop_control:
+#        loop_var: qual_item
 
-    - name: Process any Solicitations that need to be posted
-      include: solicitations.yml
-      when: qualtrics_vars != ""
+#    - name: Process any SOLs that need to be posted
+#      include: sol.yml
+#      when: qual_item.Q25  == "Post a Solicitation"
+#      with_items: '{{ qualtrics_vars.responses }}'
+#      run_once: True
+#      loop_control:
+#        loop_var: qual_item
 
-
-
-
+    
+    
+    
