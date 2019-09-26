@@ -10,12 +10,12 @@
 
     - name: Delete Old Response Zip
       file:
-        path: "response.zip"
+        path: "sol.zip"
         state: absent
   
     - name: Delete Old Response File
       file:
-        path: "Purchasing Solicitations.json"
+        path: "Solicitations.json"
         state: absent
 
     - name: Register Current Hour as End Time
@@ -24,7 +24,7 @@
    
     - name: Munge Epoch Time Minus 11 Minutes for Start Time
       set_fact:
-        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 12 )  ) }}"
+        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 30 )  ) }}"
 
     - name: Register Current Date
       set_fact:
@@ -32,38 +32,38 @@
 
     - name: Create Qualtrics Response Export
       shell: |
-        curl -X POST -H 'X-API-TOKEN: {{ qualtrics_api_token }}' -H 'Content-Type: application/json' -d '{ 
-        "surveyId": "{{ qualtrics_survey_id }}",
+        curl -X POST -H 'X-API-TOKEN: {{ sol_api_token }}' -H 'Content-Type: application/json' -d '{ 
+        "surveyId": "{{ sol_survey_id }}",
         "format": "json",
         "startDate": "{{ date }}T{{ start_time }}:00-05:00",
         "endDate": "{{ date }}T{{ end_time }}:00-05:00",
         "useLabels": true
         }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
-      register: qualtrics_export
+      register: sol_export
 
     - name: Register Qualtrics Request ID
       set_fact:
-        qualtrics_request_id: '{{ (qualtrics_export.stdout | from_json).result.id }}'
+        sol_request_id: '{{ (sol_export.stdout | from_json).result.id }}'
 
     - name: Check Status of Qualtrics Response Export
       shell: |
-        curl -H 'X-API-TOKEN: {{ qualtrics_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}'
-      register: qualtrics_progress
+        curl -H 'X-API-TOKEN: {{ sol_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ sol_request_id }}'
+      register: sol_progress
 
     - name: Download Qualtrics Response Export
       shell: |
-        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ qualtrics_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ qualtrics_request_id }}/file" -o response.zip
+        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ sol_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ sol_request_id }}/file" -o sol.zip
       ignore_errors: True
 
     - name: Unzip Response File
       unarchive:
-        src: response.zip
+        src: sol.zip
         dest: .
       ignore_errors: True
 
     - name: Import JSON as Variables
       set_fact:      
-        qualtrics_vars: "{{ lookup('file','Purchasing Solicitations.json') | from_json }}"
+        sol_vars: "{{ lookup('file','Solicitations.json') | from_json }}"
       ignore_errors: True
   
     - name: Modify Solicitation HTML
@@ -84,34 +84,34 @@
         state: present
         backup: yes
         insertbefore: "end solicitations"
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       register: modified
-      when: qualtrics_vars.responses != ""
+      when: sol_vars.responses != ""
   
     - name: Create Solicitation Directories
       file:
         path: '{{ solicitation_doc_path }}/{{ item.Q2 }}'
         state: directory
         mode: '0755'
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
   
     - name: Download Solicitation Files
       get_url:
         url: '{{ item.Q10_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q10_FILE_NAME }}'
       when: item.Q10_FILE_NAME
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       ignore_errors: True
   
     - name: Check to see if there are Attachments
       set_fact:
         attachments: '{{ item.Q13 }}'
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
   
     - name: Check to see number of Attachments
       set_fact:
         attachment_count: '{{ item.Q14 }}'
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
   
     - name: Insert 1st Attachment
       lineinfile:
@@ -119,7 +119,7 @@
         insertafter: '<td id="attach">'
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q15_FILE_NAME }}" target="_blank">{{ item.Q15_FILE_NAME }}</a><br><br>'
         backup: yes
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 1
       ignore_errors: True
   
@@ -127,7 +127,7 @@
       get_url:
         url: '{{ item.Q15_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q15_FILE_NAME }}' 
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 1
       ignore_errors: True
   
@@ -137,7 +137,7 @@
         insertafter: '<td id="attach">'
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q16_FILE_NAME }}" target="_blank">{{ item.Q16_FILE_NAME }}</a><br><br>'
         backup: yes
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 2
       ignore_errors: True
   
@@ -145,7 +145,7 @@
       get_url:
         url: '{{ item.Q16_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q16_FILE_NAME }}' 
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 2
       ignore_errors: True
   
@@ -155,7 +155,7 @@
         insertafter: '<td id="attach">'
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q17_FILE_NAME }}" target="_blank">{{ item.Q17_FILE_NAME }}</a><br><br>'
         backup: yes
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 3
       ignore_errors: True
   
@@ -163,7 +163,7 @@
       get_url:
         url: '{{ item.Q17_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q17_FILE_NAME }}' 
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 3
       ignore_errors: True
   
@@ -173,7 +173,7 @@
         insertafter: '<td id="attach">'
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q18_FILE_NAME }}" target="_blank">{{ item.Q18_FILE_NAME }}</a><br><br>'
         backup: yes
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 4
       ignore_errors: True
   
@@ -181,7 +181,7 @@
       get_url:
         url: '{{ item.Q18_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q18_FILE_NAME }}' 
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 4
       ignore_errors: True
   
@@ -191,7 +191,7 @@
         insertafter: '<td id="attach">'
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q19_FILE_NAME }}" target="_blank">{{ item.Q19_FILE_NAME }}</a><br><br>'
         backup: yes
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 5
       ignore_errors: True
   
@@ -199,7 +199,7 @@
       get_url:
         url: '{{ item.Q19_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q19_FILE_NAME }}' 
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 5
       ignore_errors: True
   
@@ -209,7 +209,7 @@
         insertafter: '<td id="attach">'
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q20_FILE_NAME }}" target="_blank">{{ item.Q20_FILE_NAME }}</a><br><br>'
         backup: yes
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 6
       ignore_errors: True
   
@@ -217,7 +217,7 @@
       get_url:
         url: '{{ item.Q20_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q20_FILE_NAME }}' 
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 6
       ignore_errors: True
   
@@ -227,7 +227,7 @@
         insertafter: '<td id="attach">'
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q21_FILE_NAME }}" target="_blank">{{ item.Q21_FILE_NAME }}</a><br><br>'
         backup: yes
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 7
       ignore_errors: True
   
@@ -235,7 +235,7 @@
       get_url:
         url: '{{ item.Q21_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q21_FILE_NAME }}' 
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 7
       ignore_errors: True
   
@@ -245,7 +245,7 @@
         insertafter: '<td id="attach">'
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q22_FILE_NAME }}" target="_blank">{{ item.Q22_FILE_NAME }}</a><br><br>'
         backup: yes
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 8
       ignore_errors: True
   
@@ -253,7 +253,7 @@
       get_url:
         url: '{{ item.Q22_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q22_FILE_NAME }}' 
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 8
       ignore_errors: True
   
@@ -263,7 +263,7 @@
         insertafter: '<td id="attach">'
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q23_FILE_NAME }}" target="_blank">{{ item.Q23_FILE_NAME }}</a><br><br>'
         backup: yes
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 9
       ignore_errors: True
   
@@ -271,7 +271,7 @@
       get_url:
         url: '{{ item.Q23_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q23_FILE_NAME }}' 
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 9
       ignore_errors: True
   
@@ -281,7 +281,7 @@
         insertafter: '<td id="attach">'
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q24_FILE_NAME }}" target="_blank">{{ item.Q24_FILE_NAME }}</a><br><br>'
         backup: yes
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 10
       ignore_errors: True
   
@@ -289,14 +289,14 @@
       get_url:
         url: '{{ item.Q24_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q24_FILE_NAME }}' 
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 10
       ignore_errors: True
   
     - name: Check to see if there is an Addendum
       set_fact:
         addendum: '{{ item.Q11 }}'
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
   
     - name: Insert Addendum
       lineinfile:
@@ -304,7 +304,7 @@
         insertafter: '<td id="attach">'
         line: '<a href="documents/{{ item.Q2 }}/{{ item.Q12_FILE_NAME }}" target="_blank">{{ item.Q12_FILE_NAME }}</a><br><br>'
         backup: yes
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: addendum
       ignore_errors: True
   
@@ -312,12 +312,12 @@
       get_url:
         url: '{{ item.Q12_FILE_ID }}'
         dest: '{{ solicitation_doc_path }}/{{ item.Q2 }}/{{ item.Q12_FILE_NAME }}' 
-      with_items: '{{ qualtrics_vars.responses }}'
+      with_items: '{{ sol_vars.responses }}'
       when: addendum
   
     - name: Copy Files to FTP
       command: ncftpput -R -u "{{ ftp_user_purch }}" -p "{{ ftp_pass_purch }}" "{{ ftp_url_purch }}" "{{ ftp_path_purch }}" "/{{ solicitation_doc_path }}/{{ item.Q2 }}"
-      with_items: '{{ qualtrics_vars.responses }}' 
+      with_items: '{{ sol_vars.responses }}' 
       ignore_errors: True
   
     - name: Copy Index to FTP
@@ -328,7 +328,7 @@
       slack:
         token: '{{ slack_token }}'
         msg: The Solicitation number '{{ item.Q2 }}' titled '{{ item.Q3 }}'  for '{{ item.Q5 }}' has been posted.
-      with_items: "{{ qualtrics_vars.responses }}"
+      with_items: "{{ sol_vars.responses }}"
       when: modified
   
   
