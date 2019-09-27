@@ -8,16 +8,18 @@
 
   tasks:
 
-    - name: Delete Old Response Zip
+    - name: Delete Old Cert Zip
       file:
-        path: "response.zip"
+        path: "cert.zip"
         state: absent
   
     - name: Delete Old Response File
       file:
-        path: "Purchasing Solicitations.json"
+        path: "Certificates.json"
         state: absent
 
+#### When are we? #####################################################################################
+                
     - name: Register Current Hour as End Time
       set_fact:
         end_time: "{{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
@@ -30,6 +32,8 @@
       set_fact:
         date: "{{ ansible_date_time.date }}"
 
+#### Qualtrics All The Things! ##########################################################################
+                
     - name: Create Qualtrics Response Export
       shell: |
         curl -X POST -H 'X-API-TOKEN: {{ cert_api_token }}' -H 'Content-Type: application/json' -d '{ 
@@ -52,12 +56,12 @@
 
     - name: Download Qualtrics Response Export
       shell: |
-        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ cert_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ cert_request_id }}/file" -o response.zip
+        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ cert_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ cert_request_id }}/file" -o cert.zip
       ignore_errors: True
 
     - name: Unzip Response File
       unarchive:
-        src: response.zip
+        src: cert.zip
         dest: .
       ignore_errors: True
 
@@ -67,7 +71,7 @@
       ignore_errors: True
 
 
-###### Certificate 01
+###### Certificate 01 ##########################################################################
 
     - name: Ensure Directories Exist
       file: 
@@ -80,7 +84,7 @@
         url: "{{ item.pdf01_FILE_ID }}"
         dest: "{{ cert_new_temp }}/{{ item.name01 }}/{{ item.name01 }} {{ item.expire01 }}.pdf"
       with_items: "{{ cert_vars.responses }}"
-      register: download
+      register: download01
       ignore_errors: yes
     
     - name: Check for WC on Certs
@@ -103,11 +107,9 @@
         token: '{{ slack_token }}'
         msg: The COI for '{{ item.name01 }}' has been filed.
       with_items: "{{ cert_vars.responses }}"
-      when: download
-    
-     
+      when: download01
 
-###### Certificate 02
+###### Certificate 02 ##########################################################################
 
     - name: Ensure Directories Exist
       file: 
@@ -120,7 +122,7 @@
         url: "{{ item.pdf02_FILE_ID }}"
         dest: "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name02 }} {{ item.expire02 }}.pdf"
       with_items: "{{ cert_vars.responses }}"
-      register: download
+      register: download02
       ignore_errors: yes
     
     - name: Check for WC on Certs
@@ -143,6 +145,309 @@
         token: '{{ slack_token }}'
         msg: The COI for '{{ item.name02 }}' has been filed.
       with_items: "{{ cert_vars.responses }}"
-      when: download
+      when: download02
+
+###### Certificate 03 ##########################################################################
+
+    - name: Ensure Directories Exist
+      file: 
+        path: '{{ cert_new_temp }}/{{ item.name03 }}'
+        state: directory
+      with_items: '{{ cert_vars.responses }}'
     
-     
+    - name: Download Certificates and Place In Folders
+      get_url:
+        url: "{{ item.pdf03_FILE_ID }}"
+        dest: "{{ cert_new_temp }}/{{ item.name03 }}/{{ item.name03 }} {{ item.expire03 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      register: download03
+      ignore_errors: yes
+    
+    - name: Check for WC on Certs
+      debug:
+        msg: '{{ item.comp03 }}'
+      with_items: "{{ cert_vars.responses }}"
+      register: wc
+    
+    - name: Rename WC Certs
+      raw: mv "{{ cert_new_temp }}/{{ item.name03 }}/{{ item.name03 }} {{ item.expire03 }}.pdf" "{{ cert_new_temp }}/{{ item.name03 }}/{{ item.name03 }} {{ item.expire03 }} WC {{ item.compexp03 }}.pdf"
+      when: item.comp03 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+    
+    - name: Move COIs from NORFILE to ISI
+      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+      ignore_errors: True
+    
+    - name: Notify Slack of File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name03 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: download03
+
+###### Certificate 04 ##########################################################################
+
+    - name: Ensure Directories Exist
+      file: 
+        path: '{{ cert_new_temp }}/{{ item.name04 }}'
+        state: directory
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download Certificates and Place In Folders
+      get_url:
+        url: "{{ item.pdf04_FILE_ID }}"
+        dest: "{{ cert_new_temp }}/{{ item.name04 }}/{{ item.name04 }} {{ item.expire04 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      register: download04
+      ignore_errors: yes
+    
+    - name: Check for WC on Certs
+      debug:
+        msg: '{{ item.comp04 }}'
+      with_items: "{{ cert_vars.responses }}"
+      register: wc
+    
+    - name: Rename WC Certs
+      raw: mv "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name04 }} {{ item.expire04 }}.pdf" "{{ cert_new_temp }}/{{ item.name04 }}/{{ item.name04 }} {{ item.expire02 }} WC {{ item.compexp04 }}.pdf"
+      when: item.comp04 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+    
+    - name: Move COIs from NORFILE to ISI
+      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+      ignore_errors: True
+    
+    - name: Notify Slack of File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name04 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: download04
+
+###### Certificate 05 ##########################################################################
+
+    - name: Ensure Directories Exist
+      file: 
+        path: '{{ cert_new_temp }}/{{ item.name05 }}'
+        state: directory
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download Certificates and Place In Folders
+      get_url:
+        url: "{{ item.pdf05_FILE_ID }}"
+        dest: "{{ cert_new_temp }}/{{ item.name05 }}/{{ item.name05 }} {{ item.expire05 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      register: download05
+      ignore_errors: yes
+    
+    - name: Check for WC on Certs
+      debug:
+        msg: '{{ item.comp05 }}'
+      with_items: "{{ cert_vars.responses }}"
+      register: wc
+    
+    - name: Rename WC Certs
+      raw: mv "{{ cert_new_temp }}/{{ item.name05 }}/{{ item.name05 }} {{ item.expire05 }}.pdf" "{{ cert_new_temp }}/{{ item.name05 }}/{{ item.name05 }} {{ item.expire05 }} WC {{ item.compexp05 }}.pdf"
+      when: item.comp05 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+    
+    - name: Move COIs from NORFILE to ISI
+      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+      ignore_errors: True
+    
+    - name: Notify Slack of File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name05 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: download05
+
+###### Certificate 06 ##########################################################################
+
+    - name: Ensure Directories Exist
+      file: 
+        path: '{{ cert_new_temp }}/{{ item.name06 }}'
+        state: directory
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download Certificates and Place In Folders
+      get_url:
+        url: "{{ item.pdf06_FILE_ID }}"
+        dest: "{{ cert_new_temp }}/{{ item.name06 }}/{{ item.name06 }} {{ item.expire06 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      register: download06
+      ignore_errors: yes
+    
+    - name: Check for WC on Certs
+      debug:
+        msg: '{{ item.comp06 }}'
+      with_items: "{{ cert_vars.responses }}"
+      register: wc
+    
+    - name: Rename WC Certs
+      raw: mv "{{ cert_new_temp }}/{{ item.name06 }}/{{ item.name06 }} {{ item.expire06 }}.pdf" "{{ cert_new_temp }}/{{ item.name06 }}/{{ item.name06 }} {{ item.expire06 }} WC {{ item.compexp06 }}.pdf"
+      when: item.comp06 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+    
+    - name: Move COIs from NORFILE to ISI
+      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+      ignore_errors: True
+    
+    - name: Notify Slack of File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name06 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: download06
+
+###### Certificate 07 ##########################################################################
+
+    - name: Ensure Directories Exist
+      file: 
+        path: '{{ cert_new_temp }}/{{ item.name07 }}'
+        state: directory
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download Certificates and Place In Folders
+      get_url:
+        url: "{{ item.pdf07_FILE_ID }}"
+        dest: "{{ cert_new_temp }}/{{ item.name07 }}/{{ item.name07 }} {{ item.expire07 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      register: download07
+      ignore_errors: yes
+    
+    - name: Check for WC on Certs
+      debug:
+        msg: '{{ item.comp07 }}'
+      with_items: "{{ cert_vars.responses }}"
+      register: wc
+    
+    - name: Rename WC Certs
+      raw: mv "{{ cert_new_temp }}/{{ item.name07 }}/{{ item.name07 }} {{ item.expire07 }}.pdf" "{{ cert_new_temp }}/{{ item.name07 }}/{{ item.name07 }} {{ item.expire07 }} WC {{ item.compexp07 }}.pdf"
+      when: item.comp07 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+    
+    - name: Move COIs from NORFILE to ISI
+      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+      ignore_errors: True
+    
+    - name: Notify Slack of File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name07 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: download07
+
+###### Certificate 08 ##########################################################################
+
+    - name: Ensure Directories Exist
+      file: 
+        path: '{{ cert_new_temp }}/{{ item.name08 }}'
+        state: directory
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download Certificates and Place In Folders
+      get_url:
+        url: "{{ item.pdf08_FILE_ID }}"
+        dest: "{{ cert_new_temp }}/{{ item.name08 }}/{{ item.name08 }} {{ item.expire08 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      register: download08
+      ignore_errors: yes
+    
+    - name: Check for WC on Certs
+      debug:
+        msg: '{{ item.comp08 }}'
+      with_items: "{{ cert_vars.responses }}"
+      register: wc
+    
+    - name: Rename WC Certs
+      raw: mv "{{ cert_new_temp }}/{{ item.name08 }}/{{ item.name08 }} {{ item.expire08 }}.pdf" "{{ cert_new_temp }}/{{ item.name08 }}/{{ item.name08 }} {{ item.expire08 }} WC {{ item.compexp08 }}.pdf"
+      when: item.comp08 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+    
+    - name: Move COIs from NORFILE to ISI
+      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+      ignore_errors: True
+    
+    - name: Notify Slack of File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name08 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: download08
+
+###### Certificate 09 ##########################################################################
+
+    - name: Ensure Directories Exist
+      file: 
+        path: '{{ cert_new_temp }}/{{ item.name09 }}'
+        state: directory
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download Certificates and Place In Folders
+      get_url:
+        url: "{{ item.pdf09_FILE_ID }}"
+        dest: "{{ cert_new_temp }}/{{ item.name09 }}/{{ item.name09 }} {{ item.expire09 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      register: download09
+      ignore_errors: yes
+    
+    - name: Check for WC on Certs
+      debug:
+        msg: '{{ item.comp09 }}'
+      with_items: "{{ cert_vars.responses }}"
+      register: wc
+    
+    - name: Rename WC Certs
+      raw: mv "{{ cert_new_temp }}/{{ item.name09 }}/{{ item.name09 }} {{ item.expire09 }}.pdf" "{{ cert_new_temp }}/{{ item.name09 }}/{{ item.name09 }} {{ item.expire09 }} WC {{ item.compexp09 }}.pdf"
+      when: item.comp09 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+    
+    - name: Move COIs from NORFILE to ISI
+      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+      ignore_errors: True
+    
+    - name: Notify Slack of File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name09 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: download09
+
+###### Certificate 10 ##########################################################################
+
+    - name: Ensure Directories Exist
+      file: 
+        path: '{{ cert_new_temp }}/{{ item.name10 }}'
+        state: directory
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download Certificates and Place In Folders
+      get_url:
+        url: "{{ item.pdf10_FILE_ID }}"
+        dest: "{{ cert_new_temp }}/{{ item.name10 }}/{{ item.name10 }} {{ item.expire10 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      register: download10
+      ignore_errors: yes
+    
+    - name: Check for WC on Certs
+      debug:
+        msg: '{{ item.comp10 }}'
+      with_items: "{{ cert_vars.responses }}"
+      register: wc
+    
+    - name: Rename WC Certs
+      raw: mv "{{ cert_new_temp }}/{{ item.name10 }}/{{ item.name10 }} {{ item.expire10 }}.pdf" "{{ cert_new_temp }}/{{ item.name10 }}/{{ item.name10 }} {{ item.expire10 }} WC {{ item.compexp10 }}.pdf"
+      when: item.comp10 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+    
+    - name: Move COIs from NORFILE to ISI
+      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+      ignore_errors: True
+    
+    - name: Notify Slack of File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name10 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: download10
+
