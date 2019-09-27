@@ -27,6 +27,16 @@
     when: check.stdout_lines
     ignore_errors: True
 
+#  - name: Create List of Expired Numbers
+#    set_fact:
+#      number_list: "{{ expire_list | regex_findall('END') }}"
+#    when: check.stdout_lines
+#    ignore_errors: True
+
+#  - name: Debug
+#    debug:
+#      msg: "{{ number_list }}"
+#
   - name: Remove Expired Solicitations
     replace:
       path: '{{ solicitation_html_path }}'
@@ -42,8 +52,8 @@
 
 #  - name: Notify Slack of Expiration Removal
 #    slack:
-#      token: '{{ slack_token }}'
-#      msg: The Solicitation for '{{ item.Q2 }}' has been posted.
-#    with_items: "{{ qualtrics_vars.responses }}"
+#     token: '{{ slack_token }}'
+#      msg: The Solicitation for '{{ item }}' has expired and been removed.
+#    with_items: "{{ expire_list }}"
 
 
