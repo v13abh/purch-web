@@ -27,16 +27,15 @@
     when: check.stdout_lines
     ignore_errors: True
 
-#  - name: Create List of Expired Numbers
-#    set_fact:
-#      number_list: "{{ expire_list | regex_findall('END') }}"
-#    when: check.stdout_lines
-#    ignore_errors: True
+  - name: Create List of Expired Numbers
+    set_fact:
+      expire_number: "{{ check.stdout | regex_search('([A-Z]-\\d{5}-\\d{2})') }}"
+    when: check.stdout
+    ignore_errors: True
 
-#  - name: Debug
-#    debug:
-#      msg: "{{ number_list }}"
-#
+  - name: Create Backup of HTML
+    raw: cp "{{ solicitation_html_path }}" "{{ solicitation_backup_path }}/solicitations.{{ ansible_date_time.date }}.{{ ansible_date_time.hour }}.{{ ansible_date_time.minute }}.html"
+
   - name: Remove Expired Solicitations
     replace:
       path: '{{ solicitation_html_path }}'
@@ -50,10 +49,9 @@
     command: ncftpput -u "{{ ftp_user_purch }}" -p "{{ ftp_pass_purch }}" "{{ ftp_url_purch }}" /solicitations "{{ solicitation_html_path }}"
     ignore_errors: True
 
-#  - name: Notify Slack of Expiration Removal
-#    slack:
-#     token: '{{ slack_token }}'
-#      msg: The Solicitation for '{{ item }}' has expired and been removed.
-#    with_items: "{{ expire_list }}"
+  - name: Notify Slack of Expiration Removal
+    slack:
+     token: '{{ slack_token }}'
+     msg: The Solicitation for '{{ expire_number }}' has expired and been removed.
 
 

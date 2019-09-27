@@ -18,6 +18,8 @@
         path: "Solicitations.json"
         state: absent
 
+#### When are we? #####################################################################################
+
     - name: Register Current Hour as End Time
       set_fact:
         end_time: "{{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
@@ -29,6 +31,8 @@
     - name: Register Current Date
       set_fact:
         date: "{{ ansible_date_time.date }}"
+
+#### Qualtrics All The Things! #####################################################################################
 
     - name: Create Qualtrics Response Export
       shell: |
@@ -66,6 +70,11 @@
         sol_vars: "{{ lookup('file','Solicitations.json') | from_json }}"
       ignore_errors: True
 
+#### Insert Solicitation #####################################################################################
+
+    - name: Create Backup of HTML
+      raw: cp "{{ solicitation_html_path }}" "{{ solicitation_backup_path }}/solicitations.{{ ansible_date_time.date }}.{{ ansible_date_time.hour }}.{{ ansible_date_time.minute }}.html"
+          
     - name: Modify Solicitation HTML
       blockinfile:
         path: '{{ solicitation_html_path }}'
@@ -82,7 +91,6 @@
             </td>
           </tr>
         state: present
-        backup: yes
         insertbefore: "end solicitations"
       when: item.soltype == "New"
       with_items: '{{ sol_vars.responses }}'
@@ -102,7 +110,9 @@
       when: item.solpdf_FILE_NAME
       with_items: '{{ sol_vars.responses }}'
       ignore_errors: True
-  
+
+#### Addendum #####################################################################################       
+
     - name: Check to see if there is an Addendum
       set_fact:
         addendum: '{{ item.soladd }}'
@@ -113,7 +123,6 @@
         path: '{{ solicitation_html_path }}'
         insertafter: '<td id="{{ item.solnumber }} attach">'
         line: '<a href="documents/{{ item.solnumber }}/{{ item.soladdpdf_FILE_NAME }}" target="_blank">{{ item.soladdpdf_FILE_NAME }}</a><br><br>'
-        backup: yes
       with_items: '{{ sol_vars.responses }}'
       when: addendum
       ignore_errors: True
@@ -124,7 +133,9 @@
         dest: '{{ solicitation_doc_path }}/{{ item.solnumber }}/{{ item.soladdpdf_FILE_NAME }}' 
       with_items: '{{ sol_vars.responses }}'
       when: addendum
-  
+
+#### Attachment #####################################################################################
+          
     - name: Check to see if there are Attachments
       set_fact:
         attachments: '{{ item.solatt }}'
@@ -135,14 +146,13 @@
         attachment_count: '{{ item.solattcount }}'
       with_items: '{{ sol_vars.responses }}'
  
-#### 1st Attachment
+#### 1st Attachment #####################################################################################
  
     - name: Insert 1st Attachment
       lineinfile:
         path: '{{ solicitation_html_path }}'
         insertafter: '<td id="{{ item.solnumber }} attach">'
         line: '<a href="documents/{{ item.solnumber }}/{{ item.solatt01_FILE_NAME }}" target="_blank">{{ item.solatt01_FILE_NAME }}</a><br><br>'
-        backup: yes
       with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 1
       ignore_errors: True
@@ -155,16 +165,13 @@
       when: attachment_count | int >= 1
       ignore_errors: True
 
-
- 
-#### 2nd Attachment
+#### 2nd Attachment #####################################################################################
  
     - name: Insert 2nd Attachment
       lineinfile:
         path: '{{ solicitation_html_path }}'
         insertafter: '<td id="{{ item.solnumber }} attach">'
         line: '<a href="documents/{{ item.solnumber }}/{{ item.solatt02_FILE_NAME }}" target="_blank">{{ item.solatt02_FILE_NAME }}</a><br><br>'
-        backup: yes
       with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 2
       ignore_errors: True
@@ -176,13 +183,160 @@
       with_items: '{{ sol_vars.responses }}'
       when: attachment_count | int >= 2
       ignore_errors: True
+          
+#### 3rd Attachment #####################################################################################
+ 
+    - name: Insert 3rd Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="{{ item.solnumber }} attach">'
+        line: '<a href="documents/{{ item.solnumber }}/{{ item.solatt03_FILE_NAME }}" target="_blank">{{ item.solatt03_FILE_NAME }}</a><br><br>'
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 3
+      ignore_errors: True
+  
+    - name: Download 3rd Attachment
+      get_url:
+        url: '{{ item.solatt03_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.solnumber }}/{{ item.solatt03_FILE_NAME }}' 
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 3
+      ignore_errors: True
 
+#### 4th Attachment #####################################################################################
+ 
+    - name: Insert 4th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="{{ item.solnumber }} attach">'
+        line: '<a href="documents/{{ item.solnumber }}/{{ item.solatt04_FILE_NAME }}" target="_blank">{{ item.solatt04_FILE_NAME }}</a><br><br>'
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 4
+      ignore_errors: True
+  
+    - name: Download 4th Attachment
+      get_url:
+        url: '{{ item.solatt04_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.solnumber }}/{{ item.solatt04_FILE_NAME }}' 
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 4
+      ignore_errors: True
 
+#### 5th Attachment #####################################################################################
+ 
+    - name: Insert 5th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="{{ item.solnumber }} attach">'
+        line: '<a href="documents/{{ item.solnumber }}/{{ item.solatt04_FILE_NAME }}" target="_blank">{{ item.solatt04_FILE_NAME }}</a><br><br>'
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 4
+      ignore_errors: True
+  
+    - name: Download 5th Attachment
+      get_url:
+        url: '{{ item.solatt05_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.solnumber }}/{{ item.solatt05_FILE_NAME }}' 
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 5
+      ignore_errors: True
 
+#### 6th Attachment #####################################################################################
+ 
+    - name: Insert 6th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="{{ item.solnumber }} attach">'
+        line: '<a href="documents/{{ item.solnumber }}/{{ item.solatt06_FILE_NAME }}" target="_blank">{{ item.solatt06_FILE_NAME }}</a><br><br>'
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 6
+      ignore_errors: True
+  
+    - name: Download 6th Attachment
+      get_url:
+        url: '{{ item.solatt06_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.solnumber }}/{{ item.solatt06_FILE_NAME }}' 
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 6
+      ignore_errors: True
+          
+#### 7th Attachment #####################################################################################
+ 
+    - name: Insert 7th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="{{ item.solnumber }} attach">'
+        line: '<a href="documents/{{ item.solnumber }}/{{ item.solatt07_FILE_NAME }}" target="_blank">{{ item.solatt07_FILE_NAME }}</a><br><br>'
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 7
+      ignore_errors: True
+  
+    - name: Download 7th Attachment
+      get_url:
+        url: '{{ item.solatt07_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.solnumber }}/{{ item.solatt07_FILE_NAME }}' 
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 7
+      ignore_errors: True
 
+#### 8th Attachment #####################################################################################
 
+    - name: Insert 8th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="{{ item.solnumber }} attach">'
+        line: '<a href="documents/{{ item.solnumber }}/{{ item.solatt08_FILE_NAME }}" target="_blank">{{ item.solatt08_FILE_NAME }}</a><br><br>'
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 8
+      ignore_errors: True
+  
+    - name: Download 8th Attachment
+      get_url:
+        url: '{{ item.solatt08_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.solnumber }}/{{ item.solatt08_FILE_NAME }}' 
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 8
+      ignore_errors: True
 
+#### 9th Attachment #####################################################################################
+ 
+    - name: Insert 9th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="{{ item.solnumber }} attach">'
+        line: '<a href="documents/{{ item.solnumber }}/{{ item.solatt09_FILE_NAME }}" target="_blank">{{ item.solatt09_FILE_NAME }}</a><br><br>'
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 9
+      ignore_errors: True
+  
+    - name: Download 9th Attachment
+      get_url:
+        url: '{{ item.solatt09_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.solnumber }}/{{ item.solatt09_FILE_NAME }}' 
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 9
+      ignore_errors: True
 
+#### 10th Attachment #####################################################################################
+
+    - name: Insert 10th Attachment
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        insertafter: '<td id="{{ item.solnumber }} attach">'
+        line: '<a href="documents/{{ item.solnumber }}/{{ item.solatt10_FILE_NAME }}" target="_blank">{{ item.solatt10_FILE_NAME }}</a><br><br>'
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 10
+      ignore_errors: True
+  
+    - name: Download 10th Attachment
+      get_url:
+        url: '{{ item.solatt10_FILE_ID }}'
+        dest: '{{ solicitation_doc_path }}/{{ item.solnumber }}/{{ item.solatt10_FILE_NAME }}' 
+      with_items: '{{ sol_vars.responses }}'
+      when: attachment_count | int >= 10
+      ignore_errors: True
+
+### Copy Files to FTP Server ###############################################################################
     
     - name: Copy Files to FTP
       command: ncftpput -R -u "{{ ftp_user_purch }}" -p "{{ ftp_pass_purch }}" "{{ ftp_url_purch }}" "{{ ftp_path_purch }}" "/{{ solicitation_doc_path }}/{{ item.solnumber }}"
@@ -193,11 +347,13 @@
       command: ncftpput -u "{{ ftp_user_purch }}" -p "{{ ftp_pass_purch }}" "{{ ftp_url_purch }}" /solicitations "{{ solicitation_html_path }}"
       ignore_errors: True
   
-    - name: Notify Slack of Posting Completion
+### Slack Notifications ####################################################################################
+  
+    - name: Notify Slack of Solicitation Posting
       slack:
         token: '{{ slack_token }}'
         msg: The Solicitation number '{{ item.solnumber }}' titled '{{ item.soltitle }}'  for '{{ item.solbuyer }}' has been posted.
       with_items: "{{ sol_vars.responses }}"
       when: modified
-  
-  
+
+    
