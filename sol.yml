@@ -49,6 +49,10 @@
       set_fact:
         sol_request_id: '{{ (sol_export.stdout | from_json).result.id }}'
 
+    - name: Wait for Qualtrics Response Report to be Created
+    wait_for:
+      timeout: 30
+
     - name: Check Status of Qualtrics Response Export
       shell: |
         curl -H 'X-API-TOKEN: {{ sol_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ sol_request_id }}'

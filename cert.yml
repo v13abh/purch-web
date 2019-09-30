@@ -49,6 +49,10 @@
       set_fact:
         cert_request_id: '{{ (cert_export.stdout | from_json).result.id }}'
 
+    - name: Wait for Qualtrics Response Report to be Created
+      wait_for:
+        timeout: 30
+
     - name: Check Status of Qualtrics Response Export
       shell: |
         curl -H 'X-API-TOKEN: {{ cert_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ cert_request_id }}'
@@ -97,9 +101,6 @@
       raw: mv "{{ cert_new_temp }}/{{ item.name01 }}/{{ item.name01 }} {{ item.expire01 }}.pdf" "{{ cert_new_temp }}/{{item.name01 }}/{{ item.name01 }} {{ item.expire01 }} WC {{ item.compexp01 }}.pdf"
       when: item.comp01 == "Yes"
       with_items: "{{ cert_vars.responses }}"
-    
-    - name: Move COIs from NORFILE to ISI
-      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
       ignore_errors: True
     
     - name: Notify Slack of File Completion
@@ -135,9 +136,6 @@
       raw: mv "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name02 }} {{ item.expire02 }}.pdf" "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name02 }} {{ item.expire02 }} WC {{ item.compexp02 }}.pdf"
       when: item.comp02 == "Yes"
       with_items: "{{ cert_vars.responses }}"
-    
-    - name: Move COIs from NORFILE to ISI
-      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
       ignore_errors: True
     
     - name: Notify Slack of File Completion
@@ -173,9 +171,6 @@
       raw: mv "{{ cert_new_temp }}/{{ item.name03 }}/{{ item.name03 }} {{ item.expire03 }}.pdf" "{{ cert_new_temp }}/{{ item.name03 }}/{{ item.name03 }} {{ item.expire03 }} WC {{ item.compexp03 }}.pdf"
       when: item.comp03 == "Yes"
       with_items: "{{ cert_vars.responses }}"
-    
-    - name: Move COIs from NORFILE to ISI
-      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
       ignore_errors: True
     
     - name: Notify Slack of File Completion
@@ -211,9 +206,6 @@
       raw: mv "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name04 }} {{ item.expire04 }}.pdf" "{{ cert_new_temp }}/{{ item.name04 }}/{{ item.name04 }} {{ item.expire02 }} WC {{ item.compexp04 }}.pdf"
       when: item.comp04 == "Yes"
       with_items: "{{ cert_vars.responses }}"
-    
-    - name: Move COIs from NORFILE to ISI
-      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
       ignore_errors: True
     
     - name: Notify Slack of File Completion
@@ -249,9 +241,6 @@
       raw: mv "{{ cert_new_temp }}/{{ item.name05 }}/{{ item.name05 }} {{ item.expire05 }}.pdf" "{{ cert_new_temp }}/{{ item.name05 }}/{{ item.name05 }} {{ item.expire05 }} WC {{ item.compexp05 }}.pdf"
       when: item.comp05 == "Yes"
       with_items: "{{ cert_vars.responses }}"
-    
-    - name: Move COIs from NORFILE to ISI
-      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
       ignore_errors: True
     
     - name: Notify Slack of File Completion
@@ -287,9 +276,6 @@
       raw: mv "{{ cert_new_temp }}/{{ item.name06 }}/{{ item.name06 }} {{ item.expire06 }}.pdf" "{{ cert_new_temp }}/{{ item.name06 }}/{{ item.name06 }} {{ item.expire06 }} WC {{ item.compexp06 }}.pdf"
       when: item.comp06 == "Yes"
       with_items: "{{ cert_vars.responses }}"
-    
-    - name: Move COIs from NORFILE to ISI
-      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
       ignore_errors: True
     
     - name: Notify Slack of File Completion
@@ -325,9 +311,6 @@
       raw: mv "{{ cert_new_temp }}/{{ item.name07 }}/{{ item.name07 }} {{ item.expire07 }}.pdf" "{{ cert_new_temp }}/{{ item.name07 }}/{{ item.name07 }} {{ item.expire07 }} WC {{ item.compexp07 }}.pdf"
       when: item.comp07 == "Yes"
       with_items: "{{ cert_vars.responses }}"
-    
-    - name: Move COIs from NORFILE to ISI
-      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
       ignore_errors: True
     
     - name: Notify Slack of File Completion
@@ -363,9 +346,6 @@
       raw: mv "{{ cert_new_temp }}/{{ item.name08 }}/{{ item.name08 }} {{ item.expire08 }}.pdf" "{{ cert_new_temp }}/{{ item.name08 }}/{{ item.name08 }} {{ item.expire08 }} WC {{ item.compexp08 }}.pdf"
       when: item.comp08 == "Yes"
       with_items: "{{ cert_vars.responses }}"
-    
-    - name: Move COIs from NORFILE to ISI
-      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
       ignore_errors: True
     
     - name: Notify Slack of File Completion
@@ -401,9 +381,6 @@
       raw: mv "{{ cert_new_temp }}/{{ item.name09 }}/{{ item.name09 }} {{ item.expire09 }}.pdf" "{{ cert_new_temp }}/{{ item.name09 }}/{{ item.name09 }} {{ item.expire09 }} WC {{ item.compexp09 }}.pdf"
       when: item.comp09 == "Yes"
       with_items: "{{ cert_vars.responses }}"
-    
-    - name: Move COIs from NORFILE to ISI
-      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
       ignore_errors: True
     
     - name: Notify Slack of File Completion
@@ -439,9 +416,6 @@
       raw: mv "{{ cert_new_temp }}/{{ item.name10 }}/{{ item.name10 }} {{ item.expire10 }}.pdf" "{{ cert_new_temp }}/{{ item.name10 }}/{{ item.name10 }} {{ item.expire10 }} WC {{ item.compexp10 }}.pdf"
       when: item.comp10 == "Yes"
       with_items: "{{ cert_vars.responses }}"
-    
-    - name: Move COIs from NORFILE to ISI
-      raw: mv "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
       ignore_errors: True
     
     - name: Notify Slack of File Completion
@@ -450,4 +424,15 @@
         msg: The COI for '{{ item.name10 }}' has been filed.
       with_items: "{{ cert_vars.responses }}"
       when: download10
+
+##### Move the Files #################################################################################
+
+    - name: Move COIs from NORFILE to ISI
+      command: mv -v "{{ cert_new_temp }}" "{{ cert_file_path }}"
+      delegate_to: localhost
+
+#    - name: Move COIs from NORFILE to ISI
+#      raw: cp "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
+#      ignore_errors: True
+    
 
