@@ -26,7 +26,7 @@
    
     - name: Munge Epoch Time Minus 16 Minutes for Start Time
       set_fact:
-        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 2 )  ) }}"
+        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 16 )  ) }}"
 
     - name: Register Current Date
       set_fact:
