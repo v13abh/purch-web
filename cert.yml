@@ -26,7 +26,7 @@
    
     - name: Munge Epoch Time Minus 16 Minutes for Start Time
       set_fact:
-        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 16 )  ) }}"
+        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 2 )  ) }}"
 
     - name: Register Current Date
       set_fact:
@@ -49,14 +49,13 @@
       set_fact:
         cert_request_id: '{{ (cert_export.stdout | from_json).result.id }}'
 
-    - name: Wait for Qualtrics Response Report to be Created
-      wait_for:
-        timeout: 30
-
     - name: Check Status of Qualtrics Response Export
       shell: |
         curl -H 'X-API-TOKEN: {{ cert_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ cert_request_id }}'
-      register: cert_progress
+      register: qualtrics_progress
+      until: qualtrics_progress.stdout.find("100.0") != -1
+      retries: 5
+      delay: 5
 
     - name: Download Qualtrics Response Export
       shell: |
@@ -74,365 +73,33 @@
         cert_vars: "{{ lookup('file','Certificates.json') | from_json }}"
       ignore_errors: True
 
-
 ###### Certificate 01 ##########################################################################
 
-    - name: Ensure Directories Exist
+    - name: Ensure Directories Exist ISI
       file: 
-        path: '{{ cert_new_temp }}/{{ item.name01 }}'
+        path: '{{ cert_file_path }}/{{ item.name01 }}'
         state: directory
       with_items: '{{ cert_vars.responses }}'
     
     - name: Download Certificates and Place In Folders
       get_url:
         url: "{{ item.pdf01_FILE_ID }}"
-        dest: "{{ cert_new_temp }}/{{ item.name01 }}/{{ item.name01 }} {{ item.expire01 }}.pdf"
+        dest: "{{ cert_file_path }}/{{ item.name01 }}/{{ item.name01 }} {{ item.expire01 }}.pdf"
       with_items: "{{ cert_vars.responses }}"
-      register: download01
       ignore_errors: yes
     
-    - name: Check for WC on Certs
-      debug:
-        msg: '{{ item.comp01 }}'
-      with_items: "{{ cert_vars.responses }}"
-      register: wc
-    
     - name: Rename WC Certs
-      raw: mv "{{ cert_new_temp }}/{{ item.name01 }}/{{ item.name01 }} {{ item.expire01 }}.pdf" "{{ cert_new_temp }}/{{item.name01 }}/{{ item.name01 }} {{ item.expire01 }} WC {{ item.compexp01 }}.pdf"
+      command: mv -f "{{ cert_file_path }}/{{ item.name01 }}/{{ item.name01 }} {{ item.expire01 }}.pdf" "{{ cert_file_path }}/{{item.name01 }}/{{ item.name01 }} {{ item.expire01 }} WC {{ item.compexp01 }}.pdf"
       when: item.comp01 == "Yes"
       with_items: "{{ cert_vars.responses }}"
+      register: download01
       ignore_errors: True
-    
+      delegate_to: localhost
+          
     - name: Notify Slack of File Completion
       slack:
         token: '{{ slack_token }}'
         msg: The COI for '{{ item.name01 }}' has been filed.
       with_items: "{{ cert_vars.responses }}"
       when: download01
-
-###### Certificate 02 ##########################################################################
-
-    - name: Ensure Directories Exist
-      file: 
-        path: '{{ cert_new_temp }}/{{ item.name02 }}'
-        state: directory
-      with_items: '{{ cert_vars.responses }}'
-    
-    - name: Download Certificates and Place In Folders
-      get_url:
-        url: "{{ item.pdf02_FILE_ID }}"
-        dest: "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name02 }} {{ item.expire02 }}.pdf"
-      with_items: "{{ cert_vars.responses }}"
-      register: download02
-      ignore_errors: yes
-    
-    - name: Check for WC on Certs
-      debug:
-        msg: '{{ item.comp02 }}'
-      with_items: "{{ cert_vars.responses }}"
-      register: wc
-    
-    - name: Rename WC Certs
-      raw: mv "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name02 }} {{ item.expire02 }}.pdf" "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name02 }} {{ item.expire02 }} WC {{ item.compexp02 }}.pdf"
-      when: item.comp02 == "Yes"
-      with_items: "{{ cert_vars.responses }}"
-      ignore_errors: True
-    
-    - name: Notify Slack of File Completion
-      slack:
-        token: '{{ slack_token }}'
-        msg: The COI for '{{ item.name02 }}' has been filed.
-      with_items: "{{ cert_vars.responses }}"
-      when: download02
-
-###### Certificate 03 ##########################################################################
-
-    - name: Ensure Directories Exist
-      file: 
-        path: '{{ cert_new_temp }}/{{ item.name03 }}'
-        state: directory
-      with_items: '{{ cert_vars.responses }}'
-    
-    - name: Download Certificates and Place In Folders
-      get_url:
-        url: "{{ item.pdf03_FILE_ID }}"
-        dest: "{{ cert_new_temp }}/{{ item.name03 }}/{{ item.name03 }} {{ item.expire03 }}.pdf"
-      with_items: "{{ cert_vars.responses }}"
-      register: download03
-      ignore_errors: yes
-    
-    - name: Check for WC on Certs
-      debug:
-        msg: '{{ item.comp03 }}'
-      with_items: "{{ cert_vars.responses }}"
-      register: wc
-    
-    - name: Rename WC Certs
-      raw: mv "{{ cert_new_temp }}/{{ item.name03 }}/{{ item.name03 }} {{ item.expire03 }}.pdf" "{{ cert_new_temp }}/{{ item.name03 }}/{{ item.name03 }} {{ item.expire03 }} WC {{ item.compexp03 }}.pdf"
-      when: item.comp03 == "Yes"
-      with_items: "{{ cert_vars.responses }}"
-      ignore_errors: True
-    
-    - name: Notify Slack of File Completion
-      slack:
-        token: '{{ slack_token }}'
-        msg: The COI for '{{ item.name03 }}' has been filed.
-      with_items: "{{ cert_vars.responses }}"
-      when: download03
-
-###### Certificate 04 ##########################################################################
-
-    - name: Ensure Directories Exist
-      file: 
-        path: '{{ cert_new_temp }}/{{ item.name04 }}'
-        state: directory
-      with_items: '{{ cert_vars.responses }}'
-    
-    - name: Download Certificates and Place In Folders
-      get_url:
-        url: "{{ item.pdf04_FILE_ID }}"
-        dest: "{{ cert_new_temp }}/{{ item.name04 }}/{{ item.name04 }} {{ item.expire04 }}.pdf"
-      with_items: "{{ cert_vars.responses }}"
-      register: download04
-      ignore_errors: yes
-    
-    - name: Check for WC on Certs
-      debug:
-        msg: '{{ item.comp04 }}'
-      with_items: "{{ cert_vars.responses }}"
-      register: wc
-    
-    - name: Rename WC Certs
-      raw: mv "{{ cert_new_temp }}/{{ item.name02 }}/{{ item.name04 }} {{ item.expire04 }}.pdf" "{{ cert_new_temp }}/{{ item.name04 }}/{{ item.name04 }} {{ item.expire02 }} WC {{ item.compexp04 }}.pdf"
-      when: item.comp04 == "Yes"
-      with_items: "{{ cert_vars.responses }}"
-      ignore_errors: True
-    
-    - name: Notify Slack of File Completion
-      slack:
-        token: '{{ slack_token }}'
-        msg: The COI for '{{ item.name04 }}' has been filed.
-      with_items: "{{ cert_vars.responses }}"
-      when: download04
-
-###### Certificate 05 ##########################################################################
-
-    - name: Ensure Directories Exist
-      file: 
-        path: '{{ cert_new_temp }}/{{ item.name05 }}'
-        state: directory
-      with_items: '{{ cert_vars.responses }}'
-    
-    - name: Download Certificates and Place In Folders
-      get_url:
-        url: "{{ item.pdf05_FILE_ID }}"
-        dest: "{{ cert_new_temp }}/{{ item.name05 }}/{{ item.name05 }} {{ item.expire05 }}.pdf"
-      with_items: "{{ cert_vars.responses }}"
-      register: download05
-      ignore_errors: yes
-    
-    - name: Check for WC on Certs
-      debug:
-        msg: '{{ item.comp05 }}'
-      with_items: "{{ cert_vars.responses }}"
-      register: wc
-    
-    - name: Rename WC Certs
-      raw: mv "{{ cert_new_temp }}/{{ item.name05 }}/{{ item.name05 }} {{ item.expire05 }}.pdf" "{{ cert_new_temp }}/{{ item.name05 }}/{{ item.name05 }} {{ item.expire05 }} WC {{ item.compexp05 }}.pdf"
-      when: item.comp05 == "Yes"
-      with_items: "{{ cert_vars.responses }}"
-      ignore_errors: True
-    
-    - name: Notify Slack of File Completion
-      slack:
-        token: '{{ slack_token }}'
-        msg: The COI for '{{ item.name05 }}' has been filed.
-      with_items: "{{ cert_vars.responses }}"
-      when: download05
-
-###### Certificate 06 ##########################################################################
-
-    - name: Ensure Directories Exist
-      file: 
-        path: '{{ cert_new_temp }}/{{ item.name06 }}'
-        state: directory
-      with_items: '{{ cert_vars.responses }}'
-    
-    - name: Download Certificates and Place In Folders
-      get_url:
-        url: "{{ item.pdf06_FILE_ID }}"
-        dest: "{{ cert_new_temp }}/{{ item.name06 }}/{{ item.name06 }} {{ item.expire06 }}.pdf"
-      with_items: "{{ cert_vars.responses }}"
-      register: download06
-      ignore_errors: yes
-    
-    - name: Check for WC on Certs
-      debug:
-        msg: '{{ item.comp06 }}'
-      with_items: "{{ cert_vars.responses }}"
-      register: wc
-    
-    - name: Rename WC Certs
-      raw: mv "{{ cert_new_temp }}/{{ item.name06 }}/{{ item.name06 }} {{ item.expire06 }}.pdf" "{{ cert_new_temp }}/{{ item.name06 }}/{{ item.name06 }} {{ item.expire06 }} WC {{ item.compexp06 }}.pdf"
-      when: item.comp06 == "Yes"
-      with_items: "{{ cert_vars.responses }}"
-      ignore_errors: True
-    
-    - name: Notify Slack of File Completion
-      slack:
-        token: '{{ slack_token }}'
-        msg: The COI for '{{ item.name06 }}' has been filed.
-      with_items: "{{ cert_vars.responses }}"
-      when: download06
-
-###### Certificate 07 ##########################################################################
-
-    - name: Ensure Directories Exist
-      file: 
-        path: '{{ cert_new_temp }}/{{ item.name07 }}'
-        state: directory
-      with_items: '{{ cert_vars.responses }}'
-    
-    - name: Download Certificates and Place In Folders
-      get_url:
-        url: "{{ item.pdf07_FILE_ID }}"
-        dest: "{{ cert_new_temp }}/{{ item.name07 }}/{{ item.name07 }} {{ item.expire07 }}.pdf"
-      with_items: "{{ cert_vars.responses }}"
-      register: download07
-      ignore_errors: yes
-    
-    - name: Check for WC on Certs
-      debug:
-        msg: '{{ item.comp07 }}'
-      with_items: "{{ cert_vars.responses }}"
-      register: wc
-    
-    - name: Rename WC Certs
-      raw: mv "{{ cert_new_temp }}/{{ item.name07 }}/{{ item.name07 }} {{ item.expire07 }}.pdf" "{{ cert_new_temp }}/{{ item.name07 }}/{{ item.name07 }} {{ item.expire07 }} WC {{ item.compexp07 }}.pdf"
-      when: item.comp07 == "Yes"
-      with_items: "{{ cert_vars.responses }}"
-      ignore_errors: True
-    
-    - name: Notify Slack of File Completion
-      slack:
-        token: '{{ slack_token }}'
-        msg: The COI for '{{ item.name07 }}' has been filed.
-      with_items: "{{ cert_vars.responses }}"
-      when: download07
-
-###### Certificate 08 ##########################################################################
-
-    - name: Ensure Directories Exist
-      file: 
-        path: '{{ cert_new_temp }}/{{ item.name08 }}'
-        state: directory
-      with_items: '{{ cert_vars.responses }}'
-    
-    - name: Download Certificates and Place In Folders
-      get_url:
-        url: "{{ item.pdf08_FILE_ID }}"
-        dest: "{{ cert_new_temp }}/{{ item.name08 }}/{{ item.name08 }} {{ item.expire08 }}.pdf"
-      with_items: "{{ cert_vars.responses }}"
-      register: download08
-      ignore_errors: yes
-    
-    - name: Check for WC on Certs
-      debug:
-        msg: '{{ item.comp08 }}'
-      with_items: "{{ cert_vars.responses }}"
-      register: wc
-    
-    - name: Rename WC Certs
-      raw: mv "{{ cert_new_temp }}/{{ item.name08 }}/{{ item.name08 }} {{ item.expire08 }}.pdf" "{{ cert_new_temp }}/{{ item.name08 }}/{{ item.name08 }} {{ item.expire08 }} WC {{ item.compexp08 }}.pdf"
-      when: item.comp08 == "Yes"
-      with_items: "{{ cert_vars.responses }}"
-      ignore_errors: True
-    
-    - name: Notify Slack of File Completion
-      slack:
-        token: '{{ slack_token }}'
-        msg: The COI for '{{ item.name08 }}' has been filed.
-      with_items: "{{ cert_vars.responses }}"
-      when: download08
-
-###### Certificate 09 ##########################################################################
-
-    - name: Ensure Directories Exist
-      file: 
-        path: '{{ cert_new_temp }}/{{ item.name09 }}'
-        state: directory
-      with_items: '{{ cert_vars.responses }}'
-    
-    - name: Download Certificates and Place In Folders
-      get_url:
-        url: "{{ item.pdf09_FILE_ID }}"
-        dest: "{{ cert_new_temp }}/{{ item.name09 }}/{{ item.name09 }} {{ item.expire09 }}.pdf"
-      with_items: "{{ cert_vars.responses }}"
-      register: download09
-      ignore_errors: yes
-    
-    - name: Check for WC on Certs
-      debug:
-        msg: '{{ item.comp09 }}'
-      with_items: "{{ cert_vars.responses }}"
-      register: wc
-    
-    - name: Rename WC Certs
-      raw: mv "{{ cert_new_temp }}/{{ item.name09 }}/{{ item.name09 }} {{ item.expire09 }}.pdf" "{{ cert_new_temp }}/{{ item.name09 }}/{{ item.name09 }} {{ item.expire09 }} WC {{ item.compexp09 }}.pdf"
-      when: item.comp09 == "Yes"
-      with_items: "{{ cert_vars.responses }}"
-      ignore_errors: True
-    
-    - name: Notify Slack of File Completion
-      slack:
-        token: '{{ slack_token }}'
-        msg: The COI for '{{ item.name09 }}' has been filed.
-      with_items: "{{ cert_vars.responses }}"
-      when: download09
-
-###### Certificate 10 ##########################################################################
-
-    - name: Ensure Directories Exist
-      file: 
-        path: '{{ cert_new_temp }}/{{ item.name10 }}'
-        state: directory
-      with_items: '{{ cert_vars.responses }}'
-    
-    - name: Download Certificates and Place In Folders
-      get_url:
-        url: "{{ item.pdf10_FILE_ID }}"
-        dest: "{{ cert_new_temp }}/{{ item.name10 }}/{{ item.name10 }} {{ item.expire10 }}.pdf"
-      with_items: "{{ cert_vars.responses }}"
-      register: download10
-      ignore_errors: yes
-    
-    - name: Check for WC on Certs
-      debug:
-        msg: '{{ item.comp10 }}'
-      with_items: "{{ cert_vars.responses }}"
-      register: wc
-    
-    - name: Rename WC Certs
-      raw: mv "{{ cert_new_temp }}/{{ item.name10 }}/{{ item.name10 }} {{ item.expire10 }}.pdf" "{{ cert_new_temp }}/{{ item.name10 }}/{{ item.name10 }} {{ item.expire10 }} WC {{ item.compexp10 }}.pdf"
-      when: item.comp10 == "Yes"
-      with_items: "{{ cert_vars.responses }}"
-      ignore_errors: True
-    
-    - name: Notify Slack of File Completion
-      slack:
-        token: '{{ slack_token }}'
-        msg: The COI for '{{ item.name10 }}' has been filed.
-      with_items: "{{ cert_vars.responses }}"
-      when: download10
-
-##### Move the Files #################################################################################
-
-    - name: Move COIs from NORFILE to ISI
-      command: mv -v "{{ cert_new_temp }}" "{{ cert_file_path }}"
-      delegate_to: localhost
-
-#    - name: Move COIs from NORFILE to ISI
-#      raw: cp "{{ cert_new_temp }}"/* "{{ cert_file_path }}"
-#      ignore_errors: True
-    
 
