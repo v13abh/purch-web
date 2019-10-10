@@ -99,7 +99,6 @@
       command: mv -f "{{ cert_file_path }}/{{ item.name01 }}/{{ item.name01 }} {{ item.expire01 }}.pdf" "{{ cert_file_path }}/{{item.name01 }}/{{ item.name01 }} {{ item.expire01 }} WC {{ item.compexp01 }}.pdf"
       when: item.comp01 == "Yes"
       with_items: "{{ cert_vars.responses }}"
-      when: cert_count | int >= 1
       ignore_errors: True
       delegate_to: localhost
           
@@ -110,3 +109,283 @@
       with_items: "{{ cert_vars.responses }}"
       when: cert_count | int >= 1
           
+###### Certificate 02 ##########################################################################
+
+    - name: Ensure Directories Exist for 2nd Certificate
+      file: 
+        path: '{{ cert_file_path }}/{{ item.name02 }}'
+        state: directory
+      when: cert_count | int >= 2
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download 2nd Certificate and Place In Folder
+      get_url:
+        url: "{{ item.pdf02_FILE_ID }}"
+        dest: "{{ cert_file_path }}/{{ item.name02 }}/{{ item.name02 }} {{ item.expire02 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 2
+      ignore_errors: yes
+    
+    - name: Rename 2nd WC Cert
+      command: mv -f "{{ cert_file_path }}/{{ item.name02 }}/{{ item.name02 }} {{ item.expire02 }}.pdf" "{{ cert_file_path }}/{{item.name02 }}/{{ item.name02 }} {{ item.expire02 }} WC {{ item.compexp02 }}.pdf"
+      when: item.comp02 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+      ignore_errors: True
+      delegate_to: localhost
+          
+    - name: Notify Slack of 2nd File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name02 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 2
+
+###### Certificate 03 ##########################################################################
+
+    - name: Ensure Directories Exist for 3rd Certificate
+      file: 
+        path: '{{ cert_file_path }}/{{ item.name03 }}'
+        state: directory
+      when: cert_count | int >= 3
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download 3rd Certificate and Place In Folder
+      get_url:
+        url: "{{ item.pdf03_FILE_ID }}"
+        dest: "{{ cert_file_path }}/{{ item.name03 }}/{{ item.name03 }} {{ item.expire03 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 3
+      ignore_errors: yes
+    
+    - name: Rename 3rd WC Cert
+      command: mv -f "{{ cert_file_path }}/{{ item.name03 }}/{{ item.name03 }} {{ item.expire03 }}.pdf" "{{ cert_file_path }}/{{item.name03 }}/{{ item.name03 }} {{ item.expire03 }} WC {{ item.compexp03 }}.pdf"
+      when: item.comp03 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+      ignore_errors: True
+      delegate_to: localhost
+          
+    - name: Notify Slack of 3rd File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name03 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 3
+
+###### Certificate 04 ##########################################################################
+
+    - name: Ensure Directories Exist for 4th Certificate
+      file: 
+        path: '{{ cert_file_path }}/{{ item.name04 }}'
+        state: directory
+      when: cert_count | int >= 4
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download 4th Certificate and Place In Folder
+      get_url:
+        url: "{{ item.pdf04_FILE_ID }}"
+        dest: "{{ cert_file_path }}/{{ item.name04 }}/{{ item.name04 }} {{ item.expire04 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 4
+      ignore_errors: yes
+    
+    - name: Rename 4th WC Cert
+      command: mv -f "{{ cert_file_path }}/{{ item.name04 }}/{{ item.name04 }} {{ item.expire04 }}.pdf" "{{ cert_file_path }}/{{item.name04 }}/{{ item.name04 }} {{ item.expire04 }} WC {{ item.compexp04 }}.pdf"
+      when: item.comp04 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+      ignore_errors: True
+      delegate_to: localhost
+          
+    - name: Notify Slack of 4th File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name04 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 4
+
+###### Certificate 05 ##########################################################################
+
+    - name: Ensure Directories Exist for 5th Certificate
+      file: 
+        path: '{{ cert_file_path }}/{{ item.name05 }}'
+        state: directory
+      when: cert_count | int >= 5
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download 5th Certificate and Place In Folder
+      get_url:
+        url: "{{ item.pdf05_FILE_ID }}"
+        dest: "{{ cert_file_path }}/{{ item.name05 }}/{{ item.name05 }} {{ item.expire05 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 5
+      ignore_errors: yes
+    
+    - name: Rename 5th WC Cert
+      command: mv -f "{{ cert_file_path }}/{{ item.name05 }}/{{ item.name05 }} {{ item.expire05 }}.pdf" "{{ cert_file_path }}/{{item.name05 }}/{{ item.name05 }} {{ item.expire05 }} WC {{ item.compexp05 }}.pdf"
+      when: item.comp05 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+      ignore_errors: True
+      delegate_to: localhost
+          
+    - name: Notify Slack of 5th File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name05 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 5
+
+###### Certificate 06 ##########################################################################
+
+    - name: Ensure Directories Exist for 6th Certificate
+      file: 
+        path: '{{ cert_file_path }}/{{ item.name06 }}'
+        state: directory
+      when: cert_count | int >= 6
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download 6th Certificate and Place In Folder
+      get_url:
+        url: "{{ item.pdf06_FILE_ID }}"
+        dest: "{{ cert_file_path }}/{{ item.name06 }}/{{ item.name06 }} {{ item.expire06 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 6
+      ignore_errors: yes
+    
+    - name: Rename 6th WC Cert
+      command: mv -f "{{ cert_file_path }}/{{ item.name06 }}/{{ item.name06 }} {{ item.expire06 }}.pdf" "{{ cert_file_path }}/{{item.name06 }}/{{ item.name06 }} {{ item.expire06 }} WC {{ item.compexp06 }}.pdf"
+      when: item.comp06 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+      ignore_errors: True
+      delegate_to: localhost
+          
+    - name: Notify Slack of 6th File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name06 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 6
+
+###### Certificate 07 ##########################################################################
+
+    - name: Ensure Directories Exist for 7th Certificate
+      file: 
+        path: '{{ cert_file_path }}/{{ item.name07 }}'
+        state: directory
+      when: cert_count | int >= 7
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download 7th Certificate and Place In Folder
+      get_url:
+        url: "{{ item.pdf07_FILE_ID }}"
+        dest: "{{ cert_file_path }}/{{ item.name07 }}/{{ item.name07 }} {{ item.expire07 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 7
+      ignore_errors: yes
+    
+    - name: Rename 7th WC Cert
+      command: mv -f "{{ cert_file_path }}/{{ item.name07 }}/{{ item.name07 }} {{ item.expire07 }}.pdf" "{{ cert_file_path }}/{{item.name07 }}/{{ item.name07 }} {{ item.expire07 }} WC {{ item.compexp07 }}.pdf"
+      when: item.comp07 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+      ignore_errors: True
+      delegate_to: localhost
+          
+    - name: Notify Slack of 7th File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name07 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 7
+
+###### Certificate 08 ##########################################################################
+
+    - name: Ensure Directories Exist for 8th Certificate
+      file: 
+        path: '{{ cert_file_path }}/{{ item.name08 }}'
+        state: directory
+      when: cert_count | int >= 8
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download 8th Certificate and Place In Folder
+      get_url:
+        url: "{{ item.pdf08_FILE_ID }}"
+        dest: "{{ cert_file_path }}/{{ item.name08 }}/{{ item.name08 }} {{ item.expire08 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 8
+      ignore_errors: yes
+    
+    - name: Rename 8th WC Cert
+      command: mv -f "{{ cert_file_path }}/{{ item.name08 }}/{{ item.name08 }} {{ item.expire08 }}.pdf" "{{ cert_file_path }}/{{item.name08 }}/{{ item.name08 }} {{ item.expire08 }} WC {{ item.compexp08 }}.pdf"
+      when: item.comp08 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+      ignore_errors: True
+      delegate_to: localhost
+          
+    - name: Notify Slack of 8th File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name08 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 8
+
+###### Certificate 09 ##########################################################################
+
+    - name: Ensure Directories Exist for 9th Certificate
+      file: 
+        path: '{{ cert_file_path }}/{{ item.name09 }}'
+        state: directory
+      when: cert_count | int >= 9
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download 9th Certificate and Place In Folder
+      get_url:
+        url: "{{ item.pdf09_FILE_ID }}"
+        dest: "{{ cert_file_path }}/{{ item.name09 }}/{{ item.name09 }} {{ item.expire09 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 9
+      ignore_errors: yes
+    
+    - name: Rename 9th WC Cert
+      command: mv -f "{{ cert_file_path }}/{{ item.name09 }}/{{ item.name09 }} {{ item.expire09 }}.pdf" "{{ cert_file_path }}/{{item.name09 }}/{{ item.name09 }} {{ item.expire09 }} WC {{ item.compexp09 }}.pdf"
+      when: item.comp09 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+      ignore_errors: True
+      delegate_to: localhost
+          
+    - name: Notify Slack of 9th File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name09 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 9
+
+###### Certificate 10 ##########################################################################
+
+    - name: Ensure Directories Exist for 10th Certificate
+      file: 
+        path: '{{ cert_file_path }}/{{ item.name10 }}'
+        state: directory
+      when: cert_count | int >= 10
+      with_items: '{{ cert_vars.responses }}'
+    
+    - name: Download 10th Certificate and Place In Folder
+      get_url:
+        url: "{{ item.pdf10_FILE_ID }}"
+        dest: "{{ cert_file_path }}/{{ item.name10 }}/{{ item.name10 }} {{ item.expire10 }}.pdf"
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 10
+      ignore_errors: yes
+    
+    - name: Rename 10th WC Cert
+      command: mv -f "{{ cert_file_path }}/{{ item.name10 }}/{{ item.name10 }} {{ item.expire10 }}.pdf" "{{ cert_file_path }}/{{item.name10 }}/{{ item.name10 }} {{ item.expire10 }} WC {{ item.compexp10 }}.pdf"
+      when: item.comp10 == "Yes"
+      with_items: "{{ cert_vars.responses }}"
+      ignore_errors: True
+      delegate_to: localhost
+          
+    - name: Notify Slack of 10th File Completion
+      slack:
+        token: '{{ slack_token }}'
+        msg: The COI for '{{ item.name10 }}' has been filed.
+      with_items: "{{ cert_vars.responses }}"
+      when: cert_count | int >= 10
+
+
