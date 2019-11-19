@@ -15,7 +15,7 @@
   
     - name: Delete Old Response File
       file:
-        path: "Certificates.json"
+        path: "Solicitations.json"
         state: absent
 
     - name: Register Current Hour as End Time
@@ -32,22 +32,22 @@
 
     - name: Create Qualtrics Response Export
       shell: |
-        curl -X POST -H 'X-API-TOKEN: {{ cert_api_token }}' -H 'Content-Type: application/json' -d '{ 
-        "surveyId": "{{ cert_survey_id }}",
+        curl -X POST -H 'X-API-TOKEN: {{ sol_api_token }}' -H 'Content-Type: application/json' -d '{ 
+        "surveyId": "{{ sol_survey_id }}",
         "format": "json",
-        "startDate": "{{ date }}T{{ start_time }}:00-05:00",
-        "endDate": "{{ date }}T{{ end_time }}:00-05:00",
+        "startDate": "{{ date }}T{{ start_time }}:00-06:00",
+        "endDate": "{{ date }}T{{ end_time }}:00-06:00",
         "useLabels": true
         }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
-      register: qualtrics_export
+      register: sol_export
 
     - name: Register Qualtrics Request ID
       set_fact:
-        cert_request_id: '{{ (qualtrics_export.stdout | from_json).result.id }}'
+        sol_request_id: '{{ (sol_export.stdout | from_json).result.id }}'
 
     - name: Check Status of Qualtrics Response Export
       shell: |
-        curl -H 'X-API-TOKEN: {{ cert_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ cert_request_id }}'
+        curl -H 'X-API-TOKEN: {{ sol_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ sol_request_id }}'
       register: qualtrics_progress
       until: qualtrics_progress.stdout.find("100.0") != -1
       retries: 5
@@ -55,7 +55,7 @@
 
     - name: Download Qualtrics Response Export
       shell: |
-        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ cert_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ cert_request_id }}/file" -o response.zip
+        curl -X GET -H "Content-Type: application/json" -H "X-API-TOKEN: {{ sol_api_token }}" "https://ousurvey.qualtrics.com/API/v3/responseexports/{{ sol_request_id }}/file" -o response.zip
 
     - name: Unzip Response File
       shell: |
@@ -64,7 +64,7 @@
 
     - name: Import JSON as Variables
       set_fact:      
-        qualtrics_vars: "{{ lookup('file','Certificates.json') | from_json }}"
+        qualtrics_vars: "{{ lookup('file','Solicitations.json') | from_json }}"
       ignore_errors: True
 
 #    - name: Process any COIs that need to be filed

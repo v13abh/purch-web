@@ -34,14 +34,13 @@
     ignore_errors: True
 
   - name: Create Backup of HTML
-    raw: cp "{{ solicitation_html_path }}" "{{ solicitation_backup_path }}/solicitations.{{ ansible_date_time.date }}.{{ ansible_date_time.hour }}.{{ ansible_date_time.minute }}.html"
+    raw: cp "{{ solicitation_html_path }}" "{{ solicitation_backup_path }}/solicitations.{{ ansible_date_time.date }}.{{ ansible_date_time.hour }}.{{ ansible_date_time.minute }}.expire.html"
 
   - name: Remove Expired Solicitations
     replace:
       path: '{{ solicitation_html_path }}'
       regexp: "(^{{ expire_list[0] }})([^$]*?)({{ expire_list[1] }})"
       replace: ''
-      backup: yes
     when: check.stdout_lines
     ignore_errors: True
 

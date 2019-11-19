@@ -24,9 +24,9 @@
       set_fact:
         end_time: "{{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
    
-    - name: Munge Epoch Time Minus 11 Minutes for Start Time
+    - name: Munge Epoch Time Minus 16 Minutes for Start Time
       set_fact:
-        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 11 )  ) }}"
+        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 16 )  ) }}"
 
     - name: Register Current Date
       set_fact:
@@ -39,8 +39,8 @@
         curl -X POST -H 'X-API-TOKEN: {{ sol_api_token }}' -H 'Content-Type: application/json' -d '{ 
         "surveyId": "{{ sol_survey_id }}",
         "format": "json",
-        "startDate": "{{ date }}T{{ start_time }}:00-05:00",
-        "endDate": "{{ date }}T{{ end_time }}:00-05:00",
+        "startDate": "{{ date }}T{{ start_time }}:00-06:00",
+        "endDate": "{{ date }}T{{ end_time }}:00-06:00",
         "useLabels": true
         }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
       register: sol_export
@@ -57,10 +57,16 @@
       retries: 5
       delay: 5
 
-    - name: Check Status of Qualtrics Response Export
-      shell: |
-        curl -H 'X-API-TOKEN: {{ sol_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ sol_request_id }}'
-      register: sol_progress
+#    - name: Wait for it...
+#      wait_for:
+#        timeout: 60
+#      delegate_to: localhost
+
+
+#    - name: Check Status of Qualtrics Response Export
+#      shell: |
+#        curl -H 'X-API-TOKEN: {{ sol_api_token }}' 'https://ousurvey.qualtrics.com/API/v3/responseexports/{{ sol_request_id }}'
+#      register: sol_progress
 
     - name: Download Qualtrics Response Export
       shell: |
@@ -121,27 +127,56 @@
 
 #### Addendum #####################################################################################       
 
-    - name: Check to see if there is an Addendum
-      set_fact:
-        addendum: '{{ item.soladd }}'
+#    - name: Check to see if there is an Addendum
+#      set_fact:
+#        addendum: '{{ item.soladd }}'
+#      with_items: '{{ sol_vars.responses }}'
+#  
+#    - name: Insert Addendum
+#      lineinfile:
+#        path: '{{ solicitation_html_path }}'
+#        insertafter: '<td id="{{ item.solnumber }} attach">'
+#        line: '<a href="documents/{{ item.solnumber }}/{{ item.soladdpdf_FILE_NAME }}" target="_blank">{{ item.soladdpdf_FILE_NAME }}</a><br><br>'
+#      with_items: '{{ sol_vars.responses }}'
+#      when: addendum
+#      ignore_errors: True
+#  
+#    - name: Download Addendum
+#      get_url:
+#        url: '{{ item.soladdpdf_FILE_ID }}'
+#        dest: '{{ solicitation_doc_path }}/{{ item.solnumber }}/{{ item.soladdpdf_FILE_NAME }}' 
+#      with_items: '{{ sol_vars.responses }}'
+#      when: addendum
+#
+#### New Close #####################################################################################
+          
+    - name: Change Closing Date and Time
+      replace:
+        path: '{{ solicitation_html_path }}'
+        after: '<td id="{{ item.solnumber }} Close">'
+        before: '</td>'
+        regexp: '(\d+-\d+-\d+ at (.+) CT)'
+        replace: '{{ item.solclosedate }} at {{ item.solclosetime }} CT'
+      when: item.solnewclose == "Yes"
       with_items: '{{ sol_vars.responses }}'
   
-    - name: Insert Addendum
+    - name: Change Closing Date and Time Header
       lineinfile:
         path: '{{ solicitation_html_path }}'
-        insertafter: '<td id="{{ item.solnumber }} attach">'
-        line: '<a href="documents/{{ item.solnumber }}/{{ item.soladdpdf_FILE_NAME }}" target="_blank">{{ item.soladdpdf_FILE_NAME }}</a><br><br>'
+        regexp: '<!-- BEGIN (\d+-\d+-\d+ \d\d:\d\d) \w-\d*-\d*-->'
+        line: '<!-- BEGIN {{ item.solclosedate }} {{ item.solclosetime }} {{ item.solnumber }}-->'
+      when: item.solnewclose == "Yes"
       with_items: '{{ sol_vars.responses }}'
-      when: addendum
-      ignore_errors: True
   
-    - name: Download Addendum
-      get_url:
-        url: '{{ item.soladdpdf_FILE_ID }}'
-        dest: '{{ solicitation_doc_path }}/{{ item.solnumber }}/{{ item.soladdpdf_FILE_NAME }}' 
+    - name: Change Closing Date and Time Footer
+      lineinfile:
+        path: '{{ solicitation_html_path }}'
+        regexp: '<!-- END (\d+-\d+-\d+ \d\d:\d\d) \w-\d*-\d*-->'
+        line: '<!-- END {{ item.solclosedate }} {{ item.solclosetime }} {{ item.solnumber }}-->'
+      when: item.solnewclose == "Yes"
       with_items: '{{ sol_vars.responses }}'
-      when: addendum
-
+  
+  
 #### Attachment #####################################################################################
           
     - name: Check to see if there are Attachments
@@ -361,7 +396,13 @@
       slack:
         token: '{{ slack_token }}'
         msg: The Solicitation number '{{ item.solnumber }}' titled '{{ item.soltitle }}'  for '{{ item.solbuyer }}' has been posted.
+      when: item.soltype == "New"
       with_items: "{{ sol_vars.responses }}"
-      when: modified
 
-    
+    - name: Notify Slack of Solicitation Update
+      slack:
+        token: '{{ slack_token }}'
+        msg: The Solicitation number '{{ item.solnumber }}' has been updated.
+      when: item.soltype == "Updated"
+      with_items: "{{ sol_vars.responses }}"
+
