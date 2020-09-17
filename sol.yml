@@ -24,9 +24,9 @@
       set_fact:
         end_time: "{{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
    
-    - name: Munge Epoch Time Minus 16 Minutes for Start Time
+    - name: Munge Epoch Time Minus 6 Minutes for Start Time
       set_fact:
-        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 16 )  ) }}"
+        start_time: "{{ '%H:%M' | strftime( ( ansible_date_time.epoch | int ) - ( 60 * 6 )  ) }}"
 
     - name: Register Current Date
       set_fact:
@@ -39,8 +39,8 @@
         curl -X POST -H 'X-API-TOKEN: {{ sol_api_token }}' -H 'Content-Type: application/json' -d '{ 
         "surveyId": "{{ sol_survey_id }}",
         "format": "json",
-        "startDate": "{{ date }}T{{ start_time }}:00-06:00",
-        "endDate": "{{ date }}T{{ end_time }}:00-06:00",
+        "startDate": "{{ date }}T{{ start_time }}:00-05:00",
+        "endDate": "{{ date }}T{{ end_time }}:00-05:00",
         "useLabels": true
         }' 'https://ousurvey.qualtrics.com/API/v3/responseexports'
       register: sol_export

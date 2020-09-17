@@ -27,19 +27,59 @@
     when: check.stdout_lines
     ignore_errors: True
 
-  - name: Create List of Expired Numbers
-    set_fact:
-      expire_number: "{{ check.stdout | regex_search('([A-Z]-\\d{5}-\\d{2})') }}"
-    when: check.stdout
-    ignore_errors: True
+#  - name: Debug the Expired List
+#    debug:
+#      msg: "{{ expire_list }}"
+
+#  - name: Create List of Expired Numbers
+#    set_fact:
+#      expire_number: "{{ check.stdout | regex_search('([A-Z]-\\d{5}-\\d{2})') }}"
+#    when: check.stdout
+#    ignore_errors: True
+#
+#  - name: Debug the Expired Numbers
+#    debug:
+#      msg: "{{ expire_number }}"
 
   - name: Create Backup of HTML
     raw: cp "{{ solicitation_html_path }}" "{{ solicitation_backup_path }}/solicitations.{{ ansible_date_time.date }}.{{ ansible_date_time.hour }}.{{ ansible_date_time.minute }}.expire.html"
 
-  - name: Remove Expired Solicitations
+  - name: Remove 1st Expired Solicitation
     replace:
       path: '{{ solicitation_html_path }}'
       regexp: "(^{{ expire_list[0] }})([^$]*?)({{ expire_list[1] }})"
+      replace: ''
+    when: check.stdout_lines
+    ignore_errors: True
+
+  - name: Remove 2nd Expired Solicitation
+    replace:
+      path: '{{ solicitation_html_path }}'
+      regexp: "(^{{ expire_list[2] }})([^$]*?)({{ expire_list[3] }})"
+      replace: ''
+    when: check.stdout_lines
+    ignore_errors: True
+
+  - name: Remove 3rd Expired Solicitation
+    replace:
+      path: '{{ solicitation_html_path }}'
+      regexp: "(^{{ expire_list[4] }})([^$]*?)({{ expire_list[5] }})"
+      replace: ''
+    when: check.stdout_lines
+    ignore_errors: True
+
+  - name: Remove 4th Expired Solicitation
+    replace:
+      path: '{{ solicitation_html_path }}'
+      regexp: "(^{{ expire_list[6] }})([^$]*?)({{ expire_list[7] }})"
+      replace: ''
+    when: check.stdout_lines
+    ignore_errors: True
+
+  - name: Remove 5th Expired Solicitation
+    replace:
+      path: '{{ solicitation_html_path }}'
+      regexp: "(^{{ expire_list[8] }})([^$]*?)({{ expire_list[9] }})"
       replace: ''
     when: check.stdout_lines
     ignore_errors: True
@@ -48,9 +88,9 @@
     command: ncftpput -u "{{ ftp_user_purch }}" -p "{{ ftp_pass_purch }}" "{{ ftp_url_purch }}" /solicitations "{{ solicitation_html_path }}"
     ignore_errors: True
 
-  - name: Notify Slack of Expiration Removal
-    slack:
-     token: '{{ slack_token }}'
-     msg: The Solicitation for '{{ expire_number }}' has expired and been removed.
+#  - name: Notify Slack of Expiration Removal
+#    slack:
+#     token: '{{ slack_token }}'
+#     msg: The Solicitation for '{{ expire_number }}' has expired and been removed.
 
 
